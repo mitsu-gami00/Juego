@@ -1021,7 +1021,7 @@ RM('win2',{n:'Windows · Mis documentos',zone:'windows',mus:'windows',enc:'windo
  '##############################'],
  ex:[{r:[0,7,1,2],to:'win1',at:[28,7.5],d:2},{r:[29,7,1,2],to:'win3',at:[1,7.5],d:3}],
  obj:[{k:'rock',x:10,y:5,id:'r1'},{k:'plate',x:17,y:9,g:'w2'},{k:'gate',x:27,y:7,h:2,cond:'plates:w2',id:'w2gate'},{k:'star',x:4,y:9,id:'win2'},
-  {k:'sign',x:12,y:1.4,t:['Un archivo dice: "arrastra la caja hasta la baldosa". Las cajas aquí pesan como un PDF de 900 páginas.']}]});
+  {k:'sign',x:12,y:1.4,t:['Un archivo dice: "La baldosa NARANJA solo se activa con peso. Empuja la caja encima: camina contra ella."','(Si la caja se atasca, háblale con Z para devolverla a su lugar.)']}]});
 RM('win3',{n:'Windows · Sistema32',zone:'windows',mus:'windows',pad:' ',map:[
  '####################',
  '#........##........#',
@@ -1412,6 +1412,7 @@ function worldUpdate(){
 }
 function stepTriggers(){
   for(const o of OBJS){
+    if(o.k==='plate'&&o.g==='w2'&&!S.fl['pl:'+o.pid]){const[r0,r1,r2,r3]=objRect(o);if(rectHit([r0,r1,r2,r3],PL.x,PL.y)&&!WT.heavyHint){WT.heavyHint=1;AU.sfx('no');UI.toast('Esta baldosa es pesada: empuja la CAJA encima','#ffa040')}}
     if(o.k==='plate'&&o.g!=='w2'){const[r0,r1,r2,r3]=objRect(o);if(PL.x>=r0&&PL.x<r0+r2&&PL.y>=r1&&PL.y<r1+r3&&!S.fl['pl:'+o.pid]){S.fl['pl:'+o.pid]=1;AU.sfx('ok')}}
     if(o.k==='pit'){const[r0,r1,r2,r3]=objRect(o);if(PL.x>=r0&&PL.x<r0+r2&&PL.y>=r1&&PL.y<r1+r3){AU.sfx('dust');UI.flash('#000');transition(o.to,o.at[0],o.at[1],0,'Caes por el glitch...');return}}
   }
@@ -1466,9 +1467,11 @@ async function interact(){
 // push rocks when walking into them
 function tryPush(){
   if(!(K.left||K.right||K.up||K.down))return;
-  const[fx,fy]=facingPoint();
+  const[fx,fy]=facingPoint();const horiz=PL.d>=2;
   for(const o of OBJS){if(o.k!=='rock')continue;const[r0,r1,r2,r3]=objRect(o);
-    if(fx>=r0&&fx<r0+r2&&fy>=r1&&fy<r1+r3){o.push=(o.push||0)+1;if(o.push>14){o.push=0;const v=DIRV[PL.d];const nx=o.rx+v[0],ny=o.ry+v[1];
+    const hitR=[[0,0],horiz?[0,-6]:[-6,0],horiz?[0,6]:[6,0]].some(([a,b])=>rectHit([r0,r1,r2,r3],fx+a,fy+b));
+    const locked=OBJS.some(p=>p.k==='plate'&&p.g==='w2'&&S.fl['pl:'+p.pid]&&p.x===o.rx&&p.y===o.ry);
+    if(hitR&&!locked){o.push=(o.push||0)+1;if(o.push>7){o.push=-14;const v=DIRV[PL.d];const nx=o.rx+v[0],ny=o.ry+v[1];
       if(!SOLID.has(tileAt(nx,ny))&&!OBJS.some(q=>q!==o&&isSolidObj(q)&&q.k!=='rock'&&rectHit(objRect(q),nx*16+8,ny*16+8))){o.rx=nx;o.ry=ny;AU.sfx('step');S.fl['rock_'+o.id]=[nx,ny];
         for(const p of OBJS)if(p.k==='plate'&&p.g==='w2'&&p.x===nx&&p.y===ny&&!S.fl['pl:'+p.pid]){S.fl['pl:'+p.pid]=1;AU.sfx('ok')}}}}
     else o.push=0}
@@ -1576,10 +1579,11 @@ function drawObj(o){
       else if(o.s==='djbooth'){const w=(o.w||1)*16;R(x,y+2,w,14,'#1a1a2a');R(x,y+2,w,2,'#ff60c0');for(let i=0;i<4;i++){R(x+6+i*14,y+6,8,6,'#2a2a3a');R(x+9+i*14,y+8,2,2,(t>>3)%4===i?'#60c0ff':'#444')}}break}
     case'house':drawHouse(o);break;
     case'door':{if(o.id==='service'){const x=o.x*16,y=o.y*16;R(x,y-12,16,28,'#2a2a3a');RO(x,y-12,16,28,'#60c0ff');T('EXIT',x+1,y-10,'#60ff80',12)}break}
-    case'plate':{const x=o.x*16,y=o.y*16,on=S.fl['pl:'+o.pid];R(x+2,y+2,12,12,on?'#40e080':'#6080c0');RO(x+2,y+2,12,12,on?'#c0ffd0':'#a0c0ff');if(!on&&t%40<20)R(x+7,y+7,2,2,'#fff');break}
+    case'plate':if(o.g==='w2'){const x=o.x*16,y=o.y*16,on=S.fl['pl:'+o.pid];R(x+1,y+1,14,14,on?'#40e080':'#a05a20');RO(x+1,y+1,14,14,on?'#c0ffd0':'#ffb060');if(!on){RO(x+4,y+4,8,8,'#ffd0a0');if(FR%40<20)R(x+7,y+7,2,2,'#fff')}break}
+      {const x=o.x*16,y=o.y*16,on=S.fl['pl:'+o.pid];R(x+2,y+2,12,12,on?'#40e080':'#6080c0');RO(x+2,y+2,12,12,on?'#c0ffd0':'#a0c0ff');if(!on&&t%40<20)R(x+7,y+7,2,2,'#fff');break}
     case'gate':{if(o.op>=1)break;const x=o.x*16,y=o.y*16,h=(o.h||1)*16*(1-o.op);R(x,y+(o.h*16-h),16,h,'#f0c040');RO(x,y+(o.h*16-h),16,h,'#a07a20');if(h>8)R(x+5,y+(o.h*16-h)+3,6,4,'#fff');break}
     case'vines':{if(o.op>=1)break;const x=o.x*16,y=o.y*16;X.globalAlpha=1-o.op;for(let i=0;i<5;i++){const w=Math.sin(t*.05+i)*2;R(x+2+i*3+w,y,2,(o.h||1)*16,'#30c050');R(x+i*3+w,y+((t/2+i*9)%28),4,3,'#60ff80')}X.globalAlpha=1;break}
-    case'rock':{const x=o.rx*16,y=o.ry*16;R(x+1,y+2,14,13,'#a87440');RO(x+1,y+2,14,13,'#6a4420');R(x+3,y+5,10,1,'#6a4420');T('PDF',x+2,y+6,'#fff',12);break}
+    case'rock':{const x=o.rx*16,y=o.ry*16;const pl=OBJS.find(p=>p.k==='plate'&&p.g==='w2');if(pl&&!S.fl['pl:'+pl.pid]&&Math.hypot(PL.x-(x+8),PL.y-(y+8))<34)T('empuja',x+8,y-10,'#ffd0a0',14,'center');R(x+1,y+2,14,13,'#a87440');RO(x+1,y+2,14,13,'#6a4420');R(x+3,y+5,10,1,'#6a4420');T('PDF',x+2,y+6,'#fff',12);break}
     case'term':{const x=o.x*16,y=o.y*16;R(x,y,16,14,'#1a2a1a');RO(x,y,16,14,'#40ff60');T(S.fl.t1?'OK':'$_',x+2,y+2,'#40ff60',14);R(x+5,y+14,6,2,'#3a4a3a');break}
     case'panel':{const x=o.x*16,y=o.y*16,ok=cond(o.cond);R(x,y,32,16,'#606878');RO(x,y,32,16,'#a0a8b8');R(x+13,y+4,6,8,ok?'#40e080':'#e04040');break}
     case'pit':{const x=o.x*16,y=o.y*16;for(let i=0;i<8;i++){R(x+2+((i*7+t)%26),y+2+((i*5)%10),3,2,['#ff40ff','#40ffff','#000','#fff'][i%4])}R(x+6,y+4,20,8,'#000');break}
