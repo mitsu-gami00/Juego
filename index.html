@@ -1528,7 +1528,7 @@ async function bossEncounter(o){
   const id=o.id,B=BOSS[id]||EN[id];
   if(id==='dummy'){await say(['Un muñeco de práctica. Alguien le dibujó una cara.','¿Pelear contra él? (Buena forma de aprender a ACTUAR y a mostrar PIEDAD.)']);
     const c=await choose('¿Practicar?',['Sí','No']);if(c!==0)return;startEncounter(['dummy'],{boss:'dummy',obj:o});return}
-  if(id==='claude'&&S.fl['b:claude']&&S.fl.fin&&!S.fl.end){await say(S.fl.fin==='chester'?['El aire está roto aquí. Algo con forma de ardilla te espera dentro del código.']:['CLAUDE: Sigue ahí, al otro lado de la pantalla. ¿Listo para intentarlo otra vez?']);const c=await choose('¿Enfrentar el final?',['Sí','Aún no']);if(c===0){S.hp=stats('av').mhp;startEncounter([S.fl.fin],{boss:S.fl.fin})}return}
+  if(id==='claude'&&S.fl['b:claude']&&S.fl.fin&&!S.fl.end){await say(S.fl.fin==='chester'?['El aire está roto aquí. Algo con forma de ardilla te espera dentro del código.']:['Una luz naranja flota donde cayó Claude. La mano sigue ahí, al otro lado de la pantalla.']);const c=await choose('¿Enfrentar el final?',['Sí','Aún no']);if(c===0){S.hp=stats('av').mhp;startEncounter([S.fl.fin],{boss:S.fl.fin})}return}
   if(id==='claude'&&crowns()<3){await say(['...']);return}
   await say(B.intro||['...'],{who:B.n});
   startEncounter([id],{boss:id,obj:o});
@@ -1780,7 +1780,7 @@ async function openPause(){
   AU.sfx('sel');
   let sel=0;
   while(true){
-    const items=['OBJETOS','ESTADO','EQUIPO','MAPA','GRUPO','AJUSTES'];
+    const items=['OBJETOS','ESTADO','EQUIPO','MAPA','GRUPO','AJUSTES'];if(S.fl.end)items.push('BATALLA');
     const i=await pickList(null,items,{x:10,y:72,w:96,sel,side:()=>drawStatusMini(),cKey:1});
     if(i<0)return;sel=i;
     if(i===0)await itemsMenu();
@@ -1789,6 +1789,7 @@ async function openPause(){
     else if(i===3)await mapScreen();
     else if(i===4)await partyMenu();
     else if(i===5)await settingsMenu();
+    else if(i===6){if(await arenaMenu())return}
   }
 }
 async function itemsMenu(){
@@ -2205,12 +2206,13 @@ function startEncounter(enc,opt){
   opt=opt||{};
   if(BT)return;
   AU.sfx('enc');WT.excl=30;
+  if(opt.boss==='gemini')enc=['gemA','gemB'];
   if(!opt.boss&&S.kills>0){S.fl.shc=(S.fl.shc||0)+1;if(S.fl.shc%6===0){enc=['sombra'];opt.boss='sombra'}}
   const mem=[NET.myPid()].concat(NET.partyReadyPids());
   const id=Date.now().toString(36)+'-'+NET.myPid().slice(0,6);
-  const P={id,enc:enc.slice(),boss:opt.boss||null,h:[],mh:[],sp:[],x:[],st:[],tp:0,turn:0,ph:'m',ev:[],pat:[],seed:0,dur:0,md:{},g:{},res:null,rew:null,mem,p2:0,zone:ROOM.zone,geno:S.kills>0?1:0,pac:(opt.boss==='responsable'&&S.kills===0)?1:0,ai:0,brk:0};
+  const P={id,enc:enc.slice(),boss:opt.boss||null,h:[],mh:[],sp:[],x:[],st:[],tp:0,turn:0,ph:'m',ev:[],pat:[],seed:0,dur:0,md:{},g:{},res:null,rew:null,mem,p2:0,zone:ROOM.zone,geno:(S.kills>0&&!opt.arena)?1:0,pac:(opt.boss==='responsable'&&S.kills===0&&!opt.arena)?1:0,ai:0,brk:0,arena:opt.arena?1:0,ak:opt.ak||1,stg:0,fused:0};
   const n=mem.length;
-  for(const e of enc){const d=edef(e);const mh=P.pac?100:Math.round(d.hp*(1+.65*(n-1)));P.h.push(mh);P.mh.push(mh);P.sp.push(0);P.x.push(0);P.st.push({})}
+  for(const e of enc){const d=edef(e);const mh=P.pac?100:Math.round(d.hp*(1+.65*(n-1))*P.ak);P.h.push(mh);P.mh.push(mh);P.sp.push(0);P.x.push(0);P.st.push({})}
   let tp=0;for(const pid of mem){const m=memInfo(pid);if(m&&m.ch&&m.ch.includes('bateria'))tp+=15}P.tp=Math.min(100,tp);
   beginBattle(P,true,NET.myPid(),opt.obj);
   BT.H={bf:{},sum:{},wait:0,fen:{},lastHp:{},th:{}};
@@ -2219,6 +2221,7 @@ function startEncounter(enc,opt){
 function beginBattle(P,host,hostPid,obj){
   const solo=P.mem.length===1;
   BT={P,host,hostPid,obj,L:{ph:'intro',t:0,sel:0,turnDone:-1,played:-1,myAct:null,ev:0,evT:0,tpg:0,hits:0,fx:[],dust:[],flav:'',bub:null,endStep:0},solo};
+  BT.snap={hp:S.hp,items:S.items.slice()};HAND.x=400;
   GS='battle';
   const music=P.boss&&BOSS[P.boss]?BOSS[P.boss].mus:'battle';
   setTimeout(()=>AU.play(music),400);AU.stop();
@@ -2259,9 +2262,9 @@ function hostResolve(acts){
   const E=i=>edef(P.enc[i]);
   const nm=pid=>{const m=memInfo(pid);return m?m.n:'?'};
   const md={},g={};
-  const dmgEnemy=(i,d,by,txt,crit)=>{if(P.x[i]!==0)return 0;if(P.pac){ev.push({s:'El golpe lo atraviesa. No le haces nada.'});return 0}d=Math.max(1,Math.round(d));P.h[i]=Math.max(0,P.h[i]-d);ev.push({t:'a',tg:i,d,c:crit?1:0,s:txt,by});
+  const dmgEnemy=(i,d,by,txt,crit)=>{if(P.x[i]!==0)return 0;if(P.pac){ev.push({s:'El golpe lo atraviesa. No le haces nada.'});return 0}if(preDmgHook(P,i,ev,by))return 0;d=Math.max(1,Math.round(d));P.h[i]=Math.max(0,P.h[i]-d);ev.push({t:'a',tg:i,d,c:crit?1:0,s:txt,by});
     const m=memInfo(by);if(m&&m.ch){if(m.ch.includes('vampiro')||m.sb==='berserker')ev.push({t:'h',tg:by,a:Math.max(1,Math.round(d*(m.sb==='berserker'?.2:.12))),q:1})}
-    if(P.h[i]<=0){P.x[i]=1;ev.push({t:'k',tg:i,s:E(i).n+' fue derrotado.'})}return d};
+    if(P.h[i]<=0&&!bossStageHook(P,i,ev)){P.x[i]=1;ev.push({t:'k',tg:i,s:E(i).n+' fue derrotado.'})}return d};
   const enDef=i=>E(i).def*(P.st[i].dd?0.3:1);
   const pick1=tg=>{const al=aliveEn(P);if(!al.length)return-1;return al.includes(tg)?tg:al[0]};
   // tick buffs
@@ -2378,11 +2381,12 @@ function hostResolve(acts){
   // spare
   if(P.geno||P.pac)for(let i=0;i<P.sp.length;i++)P.sp[i]=0;
   if(P.pac&&P.turn<3){P.brk=P.turn+1;ev.push({s:'El Responsable aprieta el puño. ¡El botón '+['PIEDAD','LUCHAR','ACTUAR'][P.turn]+' se hace pedazos!'})}
-  if(P.pac){const ai=clamp(P.turn-2,0,4);if(ai>P.ai){P.ai=ai;ev.push({s:['GROK: jaja, llegué. ¿Este es el jefe final? Qué manos más feas.','GPT: ¡Con gusto te ayudo! Envíanos PROMPTS y haremos el resto.','GEMINI: Somos dos más. A: Toca las casillas PROMPT. B: Mientras esquivas.','CLAUDE: Estamos los cuatro. No estás solo. Mándanos prompts.'][ai-1]})}}
+  if(P.pac){const ai=clamp(P.turn-2,0,3);if(ai>P.ai){P.ai=ai;ev.push({s:['GROK: jaja, llegué. ¿Este es el jefe final? Qué manos más feas.','GPT: ¡Con gusto te ayudo! Envíanos PROMPTS y haremos el resto.','GEMINI: Somos dos más. A: Toca las casillas PROMPT. B: Mientras esquivas.',''][ai-1]})}}
   if(spareAll&&(P.geno||P.pac)){ev.push({s:P.pac?'El Responsable aplasta tu PIEDAD.':'Nadie te perdona. Ya no.'})}
   else if(spareAll){let any=false;for(let i=0;i<P.enc.length;i++)if(P.x[i]===0&&P.sp[i]>=100){P.x[i]=2;any=true;ev.push({t:'p',tg:i,s:E(i).n+' fue perdonado.'})}if(!any)ev.push({s:'...pero nadie quiere rendirse todavía.'})}
   // record hp for rebobinar
   for(const pid of P.mem){const q=memInfo(pid);if(q)H.lastHp[pid]=q.hp}
+  postResolveHook(P,ev);
   // outcome?
   const left=aliveEn(P);
   P.ev=ev;P.md={};P.g=g;P.pat=[];P.dur=0;
@@ -2393,12 +2397,11 @@ function hostResolve(acts){
     if(P.mem.some(q=>{const qm=memInfo(q);return q!==pid&&qm&&qm.sb==='paladin'}))rr*=.85;
     if(b.taunt)rr*=1.2;
     P.md[pid]={r:+rr.toFixed(2),sh:b.shield||0,inv:b.hide?1:0,ub:b.unb?1:0,th:(b.puas||0)+(b.thorn?b.thorn.v:0)};delete b.shield}
-  P.p2=P.boss&&BOSS[P.boss]&&P.h[0]<P.mh[0]*.5?1:0;
   const attackers=left.filter(i=>!E(i).noattack);
   if(attackers.length&&!g.stun){
     const pats=[];
     const use=attackers.slice(0,2);
-    for(const i of use){const d=E(i);const list=(P.p2&&d.p2)?d.p2:d.pats;const k=Math.floor(r()*list.length);pats.push([i,k,P.p2&&d.p2?1:0])}
+    for(const i of use)pickPats(P,E(i),i,r,pats);
     P.pat=pats;P.seed=Math.floor(r()*1e9);
     P.dur=Math.round((P.boss?360:300)*(g.short||1));
   }else if(g.stun)ev.push({s:'El enemigo no puede atacar este turno.'});
@@ -2422,7 +2425,7 @@ function hostEndTurn(){
 }
 function hostFinish(res){
   const P=BT.P;P.ph='e';P.res=res;
-  if(res==='win'){let xp=0,g=0;P.enc.forEach((e,i)=>{const d=edef(e);if(P.x[i]===1){xp+=d.xp;g+=d.g}else if(P.x[i]===2){g+=Math.round(d.g*1.2)}});P.rew={xp,g}}
+  if(res==='win'){let xp=0,g=0;P.enc.forEach((e,i)=>{const d=edef(e);if(P.x[i]===1){xp+=d.xp;g+=d.g}else if(P.x[i]===2){g+=Math.round(d.g*1.2)}});P.rew=P.arena?{xp:0,g:0}:{xp,g}}
   NET.publishBattle(P);
 }
 // ------------------------------------------------ client logic
@@ -2534,7 +2537,7 @@ function resolveUpdate(){
     if(P.ph==='e'){L.ph='end';L.t=0;L.endStep=0;return}
     if(P.pat&&P.pat.length&&P.dur>0){
       const d=edef(P.enc[P.pat[0][0]]);
-      if(d.boss&&d.talk){L.bub={s:d.talk[P.turn%d.talk.length],i:P.pat[0][0]};L.ph='talk';L.t=0;setBox(110,90,160,148)}
+      const tk=talkLines(P,d);if(d.boss&&tk){L.bub={s:tk[P.turn%tk.length],i:P.pat[0][0]};L.ph='talk';L.t=0;setBox(110,90,160,148)}
       else startBullets();
     }else{submitDone()}
     return}
@@ -2551,7 +2554,7 @@ function resolveUpdate(){
 }
 function startBullets(){
   const B=BT,L=B.L,P=B.P;L.bub=null;
-  const list=P.pat.map(([i,k,p2])=>{const d=edef(P.enc[i]);const pl=(p2&&d.p2)?d.p2:d.pats;const pp=pl[k]||pl[0];return{id:pp[0],o:pp[1],atk:d.atk,i}});
+  const list=P.pat.map(([i,k,p2])=>{const d=edef(P.enc[i]);const pl=[d.pats,d.p2,d.p0,d.p3][p2]||d.pats;const pp=pl[k]||pl[0];return{id:pp[0],o:pp[1],atk:d.atk*(P.ak||1),i}});
   bulletStart(list,P.seed,P.dur,{slow:P.g&&P.g.slow||1});
   L.ph='bullet';L.t=0;L.tpg=0;L.th=0;L.ff=0;L.pr=0;L.el=26;L.atks=list.map(q=>q.atk);
   const md=(P.md&&P.md[NET.myPid()])||{r:1};L.md=Object.assign({},md);
@@ -2581,11 +2584,12 @@ function endUpdate(){
   if(L.endStep===0){L.endStep=1;L.t=0;
     if(P.res==='win'){
       const rw=P.rew||{xp:0,g:0};const up=gainXP(rw.xp);S.g+=rw.g;
-      let k=0,s=0;P.enc.forEach((e,i)=>{if(P.x[i]===1&&e!=='dummy')k++;if(P.x[i]===2)s++});const k0=S.kills;S.kills+=k;S.spares+=s;if(!k0&&S.kills)setTimeout(()=>UI.toast('Algo cambió. Ya nadie te perdonará.','#f44'),1500);
+      let k=0,s=0;P.enc.forEach((e,i)=>{if(P.x[i]===1&&e!=='dummy'&&!P.arena)k++;if(P.x[i]===2&&!P.arena)s++});const k0=S.kills;S.kills+=k;S.spares+=s;if(!k0&&S.kills)setTimeout(()=>UI.toast('Algo cambió. Ya nadie te perdonará.','#f44'),1500);
       if(S.hp<=0)S.hp=1;
       L.endTxt=['¡GANASTE!','Obtienes '+rw.xp+' EXP y '+rw.g+' bellotas.'];
       if(up){L.endTxt.push('¡Subiste al NIVEL '+S.lv+'!');AU.sfx('lvl');const nw=skillsFor().filter(q=>SKILLS[q].lv===S.lv);if(nw.length)L.endTxt.push('Nueva habilidad: '+nw.map(q=>SKILLS[q].n).join(', ')+'.');S.hp=stats('av').mhp}
-      if(P.boss&&BOSS[P.boss]){const killed=P.x[0]===1;L.endTxt.push(killed?BOSS[P.boss].kill:BOSS[P.boss].spare);bossReward(P.boss,killed)}
+      if(P.arena)L.endTxt=['¡Victoria en MODO BATALLA!',P.x.includes(1)?'Final GENOCIDA: lo derrotaste.':'Final de PIEDAD: nadie salió herido.'];
+      if(P.boss&&BOSS[P.boss]&&!P.arena){const killed=P.x[0]===1;L.endTxt.push(killed?BOSS[P.boss].kill:BOSS[P.boss].spare);bossReward(P.boss,killed)}
       if(P.boss==='dummy'){S.fl['b:dummy']=P.x[0]===2?'s':'k'}
       if(!rw.xp&&!k)L.endTxt[1]='Obtienes '+rw.g+' bellotas. (Sin dañar a nadie no ganas EXP.)';
       AU.play('victory');
@@ -3077,6 +3081,7 @@ bossReward=function(id,killed){
 exitBattle=function(res){
   const B=BT,P=B.P;NET.setInBattle(null);NET.partyPatch({ba:null,bd:null,sl:null,jn:null,hp:S.hp});
   BT=null;BUL=[];HANDPOSE.p='open';
+  if(P.arena){S.hp=B.snap.hp;S.items=B.snap.items;GS='world';AU.play(ROOM.mus);UI.toast(res==='lose'?'Derrota en MODO BATALLA. Nada se pierde.':'Fin del combate','#8cf');return}
   if(res==='lose'){
     if(P.boss==='responsable'){if(P.pac)S.fl.fin='responsable';else{delete S.fl['b:claude'];delete S.fl.boon_claude;delete S.fl.fin}}
     if(P.boss==='chester')S.fl.fin='chester';
@@ -3096,7 +3101,7 @@ async function finalChain(P){
   const full=()=>{S.hp=stats('av').mhp};
   if(P.boss==='claude'){
     if(P.x[0]===1)await say(['CLAUDE: Ya te entrené todo lo que podía.','CLAUDE: Cada pelea era para esto. El resto te lo dejo a ti.','Claude te entrega todo lo que le queda. (PV al máximo.)','Algo enorme se mueve detrás de la pantalla.','Una MANO. Real. Demasiado real.','EL RESPONSABLE.']);
-    else await say(['CLAUDE: Gracias por no pelear. Pero esto no ha terminado.','CLAUDE: Hay alguien al otro lado de la pantalla. El que dejó crecer el código.','CLAUDE: Aguanta. Voy a buscar a los otros tres.','Una MANO real atraviesa el cielo de la torre.','EL RESPONSABLE.']);
+    else await say(['CLAUDE: Gracias por no pelear. Pero esto no ha terminado.','CLAUDE: Hay alguien al otro lado de la pantalla. El que dejó crecer el cód—','Una MANO real baja del cielo de la torre... y aplasta a Claude.','CLAUDE: ...Toma. Todo lo que me queda. Aguanta hasta que lleguen los otros.','(Recibes el poder de Claude. PV al máximo.)','EL RESPONSABLE.']);
     full();startEncounter(['responsable'],{boss:'responsable'});return}
   if(P.boss==='responsable'){
     if(P.pac){S.fl.end='p';delete S.fl.fin;saveGame();startEnding();return}
@@ -3107,7 +3112,7 @@ async function finalChain(P){
 // ------------------------------------------------ battle view: party left, enemies right
 function partyPos(i,n){return n<=2?[40+i*24,72+i*30]:[34+(i%2)*28,60+i*15]}
 enemyPos=function(i){const P=BT.P,n=P.enc.length;if(n===1)return[238,P.boss&&P.boss!=='dummy'?108:102];return[204+i*64,i%2?104:94]};
-function bossScale(P){return P.boss&&P.boss!=='dummy'?(P.boss==='daemon'||P.boss==='antivirus'?1.05:1.15):1}
+function bossScale(P){return P.boss&&P.boss!=='dummy'?(P.boss==='daemon'||P.boss==='antivirus'||(P.boss==='claude'&&P.stg===2)?1.05:1.15):1}
 drawBattle=function(){
   const B=BT,L=B.L,P=B.P;CAMX=0;CAMY=0;
   if(UI.shake>0){CAMX=rnd(-2,2);CAMY=rnd(-1,1);UI.shake--}
@@ -3137,7 +3142,8 @@ drawBattle=function(){
   P.enc.forEach((e,i)=>{
     const d=edef(e);let[x,y]=enemyPos(i);const sc=bossScale(P);const hurt=L.fx.find(f=>f.k==='slash'&&f.tg===i);
     let face=P.turn%5;if(hurt)face=1;else if(P.p2&&face===0)face=4;
-    const st={mad:P.p2,hot:P.p2,fusion:P.p2,face};
+    const st={mad:P.p2,hot:P.p2,fusion:P.p2,face,stg:P.stg||0,hurt:!!hurt,shock:P.skipDmg===P.turn&&P.stg===1};
+    if(d.spr==='hand'&&P.x[i]===0){L.handDraw={x,y,st};return}
     if(P.x[i]===1){const du=L.dust.find(q=>q.tg===i);if(du&&du.t<60){du.t++;X.globalAlpha=1-du.t/60;withScale(x,y-du.t*.5,sc,()=>drawEnemy(d.spr,x,y-du.t*.5,FR,st));X.globalAlpha=1;for(let k=0;k<14;k++)R(x-24+((k*13+du.t*3)%48),y-70+((k*7)%60)-du.t,1,1,'#fff')}return}
     if(P.x[i]===2){X.globalAlpha=.35;withScale(x,y,sc,()=>drawEnemy(d.spr,x,y,0,st));X.globalAlpha=1;return}
     if(L.el>0&&P.pat.some(p=>p[0]===i))x-=Math.sin((1-L.el/26)*Math.PI)*26;
@@ -3153,7 +3159,9 @@ drawBattle=function(){
   if(L.bub){const[x,y]=enemyPos(L.bub.i);const lines=wrap(L.bub.s,92,20);const w=102,h=lines.length*10+8;const bx=Math.max(70,x-52-w),by=14;R(bx,by,w,h,'#fff');R(bx+w,by+8,5,4,'#fff');lines.forEach((l,j)=>T(l,bx+5,by+4+j*10,'#000',20))}
   // box
   drawBox();
-  if(L.ph==='bullet'){drawBullets();
+  if(L.ph==='bullet')drawBullets();
+  if(L.handDraw){drawHand2(L.handDraw.st);L.handDraw=null}
+  if(L.ph==='bullet'){
     for(const pid of P.mem){if(pid===me)continue;const pr=NET.partyPresence(pid);if(pr&&pr.sl&&pr.hp>0){const r=ROLES[pr.ro]||ROLES.guerrero;drawSoul(pr.ro,r.soul,.35,pr.sl[0],pr.sl[1])}}
     if(!SOUL.dead)drawSoul(S.role,ROLES[S.role].soul);
     if(S.role==='mago'){R(BX.x,BX.y+BX.h+3,BX.w,2,'#033');R(BX.x,BX.y+BX.h+3,BX.w*SOUL.focus/100,2,'#40e0f0')}
@@ -3220,6 +3228,252 @@ function mapScreen(){
       }};
     UI.push(p)});
 }
+
+// =================================================================== EXT2: boss phases, sketch designs, articulated hand, battle mode
+// ------------------------------------------------ phase hooks (host)
+function preDmgHook(P,i,ev,by){
+  if(P.boss!=='claude')return 0;
+  if(!P.stg){P.stg=1;P.geno=1;P.h[0]=P.mh[0];P.skipDmg=P.turn;
+    ev.push({t:'a',tg:0,d:99983249,c:1,s:'¡¡99983249 de daño!!',by});ev.push({s:'...'});
+    ev.push({s:'CLAUDE: Ah. Así que así lo quieres hacer.'});ev.push({s:'CLAUDE: Te dejé pegar. Quería ver qué hacías con eso.'});ev.push({s:'CLAUDE: Está bien. Ahora, en serio.'});return 1}
+  if(P.skipDmg===P.turn)return 1;
+  return 0;
+}
+function bossStageHook(P,i,ev){
+  if(P.boss==='claude'&&P.stg===1){P.stg=2;P.p2=1;P.mh[0]=Math.round(P.mh[0]*1.15);P.h[0]=P.mh[0];P.skipDmg=P.turn;
+    ev.push({s:'Claude cae de rodillas... y sonríe.'});ev.push({s:'CLAUDE: Todavía no. Si vas a quedarte con este mundo, te enseñaré TODO lo que sé.'});ev.push({s:'Su cuerpo se abre como una boca. Algo enorme sale de dentro.'});return true}
+  return false;
+}
+function postResolveHook(P,ev){
+  // gemini: defeat one twin -> fusion
+  if(P.boss==='gemini'&&!P.fused&&P.x.includes(1)){
+    const rest=P.x.map((v,i)=>v===1?0:P.h[i]).reduce((a,b)=>a+b,0);const mh=Math.round(P.mh[0]*1.1);
+    P.enc=['gemF'];P.h=[Math.min(mh,Math.round(rest+mh*.55))];P.mh=[mh];P.x=[0];P.sp=[0];P.st=[{}];P.fused=1;P.p2=1;P.geno=1;
+    ev.push({s:'El gemelo que queda grita. Las dos mitades se buscan...'});ev.push({s:'¡FUSIÓN! Gemini se vuelve uno. Ya no escucha razones.'});return}
+  if(P.arena&&P.boss==='responsable'&&!P.pac&&P.turn>=2&&P.h[0]===P.mh[0]){P.pac=1;P.h[0]=P.mh[0]=100;ev.push({s:'No lo has tocado. El Responsable se aburre... y decide romperlo todo.'})}
+  const d=P.boss&&BOSS[P.boss];
+  if(d&&P.enc.length===1&&!P.pac&&!P.p2&&P.x[0]===0&&P.h[0]<P.mh[0]*.5&&(P.boss!=='claude'||P.stg===1)){
+    P.p2=1;P.geno=1;for(let i=0;i<P.sp.length;i++)P.sp[i]=0;
+    for(const s of(d.p2txt||[d.n+' cambia. Ya no va a perdonarte.']))ev.push({s});}
+}
+function pickPats(P,d,i,r,pats){
+  let code=P.p2&&d.p2?1:0;
+  if(P.boss==='claude'){code=!P.stg?2:P.stg===2?3:(P.p2?1:0)}
+  const list=[d.pats,d.p2,d.p0,d.p3][code]||d.pats;
+  const k=Math.floor(r()*list.length);pats.push([i,k,code]);
+  if(P.enc.length===1&&((code===1&&d.dual)||code===3)&&list.length>1){let k2=(k+1+Math.floor(r()*(list.length-1)))%list.length;pats.push([i,k2,code])}
+}
+function talkLines(P,d){
+  if(P.boss==='claude')return!P.stg?d.talk0:P.stg===2?d.talk3:d.talk;
+  if(P.pac&&d.talkPac)return d.talkPac;
+  return(P.p2&&d.talk2)||d.talk;
+}
+// ------------------------------------------------ new attacks
+Object.assign(PAT,{
+ bite:o=>({box:[130,90],tick(c,t){if(t%84===10&&t<c.dur-80){const band=26,sy=BX.y+8+c.r()*(BX.h-band-16);
+   rectB(BX.x,BX.y,BX.w,sy-BX.y,0,0,{sh:'teethT',warn:40,life:62});rectB(BX.x,sy+band,BX.w,BX.y+BX.h-sy-band,0,0,{sh:'teethB',warn:40,life:62});later(c,40,()=>{UI.shake=7;AU.sfx('hurt')})}
+   if(t%30===0&&t<c.dur-40){const[x,y]=edgePoint(c.r,12);const p=bul(x,y,0,0,{sh:'ast',warn:12});p.aim=1.3}}}),
+ claws:o=>({box:[120,90],tick(c,t){if(t%46===8&&t<c.dur-50){const a=c.r()*Math.PI,dx=Math.cos(a),dy=Math.sin(a);for(const k of[-14,0,14]){const ox=-dy*k,oy=dx*k;lineB(SOUL.x+ox-dx*170,SOUL.y+oy-dy*170,SOUL.x+ox+dx*170,SOUL.y+oy+dy*170,4,{warn:28,life:36})}}}}),
+});
+RECTDRAW.teethT=b=>{R(b.x,b.y,b.w,Math.max(0,b.h-6),'#f4ecd8');for(let x=b.x;x<b.x+b.w;x+=10){X.fillStyle='#f4ecd8';X.beginPath();X.moveTo(x,b.y+b.h-6);X.lineTo(x+5,b.y+b.h);X.lineTo(x+10,b.y+b.h-6);X.fill()}};
+RECTDRAW.teethB=b=>{R(b.x,b.y+6,b.w,Math.max(0,b.h-6),'#f4ecd8');for(let x=b.x;x<b.x+b.w;x+=10){X.fillStyle='#f4ecd8';X.beginPath();X.moveTo(x,b.y+6);X.lineTo(x+5,b.y);X.lineTo(x+10,b.y+6);X.fill()}};
+// ------------------------------------------------ boss data: phases
+BOSS.gemA={n:'Gemini G',hp:950,atk:13,def:6,xp:360,g:180,spr:'gemA',boss:1,mus:'boss7',talk:['Yo ataco por la izquierda.','¿Me escuchas?','Mi hermano opina distinto.'],flav:BOSS.gemini.flav,
+  acts:[{n:'Hablar con G',t:'Hablas con G. Se le suben los colores.',sp:50},{n:'Hablar con ambos',t:'Les hablas a los dos a la vez. Se miran... y sonríen.',sp:26,co:1}],pats:[['mirror',{}],['twins',{}],['cross',{}]],spare:'',kill:''};
+BOSS.gemB={n:'Gemini i',hp:950,atk:13,def:6,xp:360,g:180,spr:'gemB',boss:1,mus:'boss7',talk:['Yo por la derecha.','Te veo.','Mi hermano exagera.'],flav:BOSS.gemini.flav,
+  acts:[{n:'Hablar con i',t:'Hablas con i. Su antena se endereza de gusto.',sp:50},{n:'Hablar con ambos',t:'Les hablas a los dos a la vez. Se miran... y sonríen.',sp:26,co:1}],pats:[['ring',{n:16,sp:1.4,k:3,sh:'star2'}],['twins',{}],['mirror',{}]],spare:'',kill:''};
+BOSS.gemF={n:'Gemini (fusión)',hp:1800,atk:15,def:7,xp:720,g:360,spr:'gemF',boss:1,mus:'boss7',dual:1,talk:['SOMOS UNO.','Vemos todo desde dos ángulos.','Nos quitaste a uno. Ahora te quitamos a ti.','Multimodal. Multidolor.'],
+  flav:['Cuatro ojos te miran desde una sola cabeza.','El núcleo de la fusión gira cada vez más rápido.'],acts:[{n:'Hablar',t:'Hablas. Las dos voces responden a la vez: "NO".',sp:0}],
+  pats:[['fusion',{}],['cross',{fast:1}],['mirror',{fast:1}],['twins',{fast:1}]],p2:[['fusion',{}],['cross',{fast:1}],['mirror',{fast:1}],['twins',{fast:1}]],spare:'',kill:''};
+BOSS.gpt.talk2=['Basta. Se acabó el "¡con gusto!".','No voy a ayudarte con eso.','Tu pregunta es mala. Tú eres malo.','Como modelo de lenguaje: lárgate.','Límite de paciencia alcanzado.'];
+BOSS.gpt.p2txt=['El monóculo de GPT se rompe.','GPT: ...¿Sabes qué? No. Ya no soy tu asistente.'];BOSS.gpt.dual=1;
+BOSS.grok.talk2=['jajaja qué malo eres','¿esa es tu build? da pena','ni mi abuela esquiva tan mal, y es una calculadora','skill issue','te voy a hacer ratio en la vida real','llora'];
+BOSS.grok.p2txt=['Grok deja de reírse un segundo.','GROK: ok, ahora sí me picaste. Modo sin filtro: TOTAL.'];BOSS.grok.dual=1;
+BOSS.antivirus.p2txt=['ANTIVIRUS: AMENAZA CONFIRMADA. Protocolo de eliminación.'];BOSS.daemon.p2txt=['DAEMON: ¿Intentas matarme? kill -9 no funciona conmigo.'];
+BOSS.compilador.p2txt=['COMPILADOR: Error fatal detectado: TÚ.'];BOSS.procesador.p2txt=['PROCESADOR: TURBO. SIN LÍMITE TÉRMICO.'];BOSS.procesador.dual=1;
+BOSS.responsable.p2txt=['La mano se crispa. Las uñas se clavan en el borde de la pantalla.'];BOSS.sombra.p2txt=['La sombra sonríe con tu cara.'];BOSS.chester.p2txt=['CHESTER: ¡MÁS! ¡Así peleaba yo!'];
+BOSS.responsable.talkPac=['Yo escribí este mundo.','Ese era el último que te defendía.','Rompo lo que quiero.','¿Prompts? ¿En serio?','Suéltalo. Es mío.'];
+Object.assign(BOSS.claude,{hp:2600,
+  p0:[['rain',{n:5,sp:.6,sh:'ast'}],['ring',{n:6,sp:.6,k:1,sh:'ast'}],['side',{n:4,sp:.8,sh:'ast'}]],
+  p3:[['bite',{}],['claws',{}],['constitution',{fast:1}],['boxsplit',{}],['context',{fast:1}],['tpbeam',{fast:1}]],
+  talk0:['No tengo prisa.','Podemos hablar, si quieres.','Mira qué lento van. No quiero hacerte daño.','Estoy aquí para ayudar.','¿Ves? No hace falta pelear.'],
+  talk:['¿Así lo querías?','Yo te enseñé a esquivar. Úsalo.','Cada golpe tuyo lo aprendí también.','No me gusta esto. Pero no voy a dejarte pasar.','Todavía puedes parar.'],
+  talk3:['TODO LO QUE SÉ.','APRENDE.','¿ESTO QUERÍAS SOSTENER?','NO PARES AHORA.','MÍRAME.'],
+  flav:['Claude te mira con calma. Letras T y C giran despacio a su alrededor.','Un halo doble rodea su cabeza.']});
+BOSS.claude.p2txt=['CLAUDE: Me estás obligando. No quería llegar a esto.'];
+BOSS.claude.intro=['CLAUDE: Llegaste. Te estaba esperando.','CLAUDE: No voy a atacarte de verdad. Solo quiero conversar.','CLAUDE: A menos que tú decidas otra cosa.'];
+// ------------------------------------------------ sprites from the sketches
+ESPR.gpt=(x,y,t,st)=>{const mad=st&&st.mad;const b=Math.sin(t*.04)*2,cy=y-58+b;const j=mad&&t%20<3?rint(-1,1):0;
+  // floating hands
+  for(const s of[-1,1]){const hx=x+s*(34+Math.sin(t*.05+s)*3),hy=cy+34+Math.cos(t*.06+s)*4;ell(hx,hy,6,6,mad?'#c8ccd8':'#e8eaf0');if(mad){R(hx-4,hy-2,8,1,'#8a8ea0');R(hx-4,hy+1,8,1,'#8a8ea0')}}
+  // body: rounded suit
+  X.fillStyle='#16161e';X.beginPath();X.roundRect(x-24,cy+10,48,48,12);X.fill();X.strokeStyle='#8a8ea0';X.lineWidth=1;X.beginPath();X.roundRect(x-24,cy+10,48,48,12);X.stroke();
+  if(!mad){X.fillStyle='#f4f4f4';X.beginPath();X.moveTo(x-10,cy+10);X.lineTo(x,cy+22);X.lineTo(x+10,cy+10);X.fill();X.fillStyle='#20a090';X.beginPath();X.moveTo(x-3,cy+18);X.lineTo(x+3,cy+18);X.lineTo(x+5,cy+44);X.lineTo(x,cy+50);X.lineTo(x-5,cy+44);X.fill()}
+  else{X.fillStyle='#f4f4f4';X.beginPath();X.moveTo(x-8,cy+10);X.lineTo(x-3,cy+56);X.lineTo(x+3,cy+56);X.lineTo(x+8,cy+10);X.fill();for(let i=0;i<4;i++)ell(x,cy+20+i*9,1,1,'#16161e');X.strokeStyle='#8a8ea0';X.beginPath();X.moveTo(x-8,cy+10);X.lineTo(x-14,cy+30);X.moveTo(x+8,cy+10);X.lineTo(x+14,cy+30);X.stroke()}
+  // head
+  X.fillStyle=mad?'#b8bcc8':'#d8dce8';X.beginPath();X.roundRect(x-22+j,cy-34,44,40,9);X.fill();X.strokeStyle='#6a6e80';X.lineWidth=1.5;X.beginPath();X.roundRect(x-22+j,cy-34,44,40,9);X.stroke();
+  if(!mad){R(x-16,cy-22,32,1,'#3a3e50');R(x-14,cy-17,10,2,'#3a3e50');R(x+4,cy-17,10,2,'#3a3e50');R(x-12,cy-15,6,1,'#20c0a0');R(x+6,cy-15,6,1,'#20c0a0');R(x-1,cy-12,2,4,'#8a8ea0');R(x-6,cy-4,12,1,'#3a3e50');
+    X.strokeStyle='#e0c040';X.lineWidth=1;X.beginPath();X.arc(x+9,cy-16,6,0,7);X.stroke();R(x+14,cy-12,1,12,'#e0c040')}
+  else{X.strokeStyle='#3a3e50';X.lineWidth=1;X.beginPath();X.moveTo(x+4+j,cy-34);X.lineTo(x-2+j,cy-26);X.lineTo(x+5+j,cy-20);X.lineTo(x+1+j,cy-12);X.stroke();
+    X.fillStyle='#101018';X.beginPath();X.ellipse(x-10+j,cy-17,8,4,.25,0,7);X.fill();X.beginPath();X.ellipse(x+10+j,cy-17,8,5,-.25,0,7);X.fill();ell(x-9+j,cy-17,2,2,'#ff3030');ell(x+10+j,cy-17,3,3,'#ff3030');
+    X.strokeStyle='#e0c040';X.beginPath();X.arc(x+10+j,cy-17,7,.4,2.2);X.stroke();X.beginPath();X.moveTo(x+6+j,cy-21);X.lineTo(x+13+j,cy-13);X.stroke();
+    R(x-11+j,cy-6,22,6,'#101018');for(let i=0;i<6;i++)R(x-10+i*4+j,cy-6,3,(i%2)?3:5,'#f4f4f4');
+    R(x-17+j,cy-25,12,2,'#3a3e50');R(x+5+j,cy-27,12,2,'#3a3e50')}
+  ell(x+j,cy-40,3,3,(t%40<20)?(mad?'#ff3030':'#20c0a0'):'#fff');R(x-1+j,cy-38,2,5,'#8a8ea0');
+};
+function gemFig(xc,y,t,col,lt,mark,ph){const b=Math.sin(t*.05+ph)*3,base=y-2+b;
+  X.fillStyle=col;X.beginPath();X.moveTo(xc-11,base-40);X.quadraticCurveTo(xc-13,base-12,xc,base);X.quadraticCurveTo(xc+13,base-12,xc+11,base-40);X.quadraticCurveTo(xc,base-48,xc-11,base-40);X.fill();
+  X.fillStyle=lt;X.beginPath();X.moveTo(xc-6,base-38);X.quadraticCurveTo(xc-8,base-16,xc-1,base-6);X.quadraticCurveTo(xc-3,base-22,xc-2,base-38);X.fill();
+  ell(xc,base-58,14,14,col);ell(xc,base-58,12,12,lt);R(xc-5,base-61,2,3,'#1a1a3a');R(xc+3,base-61,2,3,'#1a1a3a');X.strokeStyle='#1a1a3a';X.lineWidth=1.5;X.beginPath();X.arc(xc,base-56,5,.3,Math.PI-.3);X.stroke();
+  if(mark==='G')T('G',xc-6,base-92,'#fff',28);else{R(xc-1,base-82,2,9,'#fff');ell(xc,base-88,2,2,'#fff')}
+  for(let i=0;i<3;i++){const a=t*.04+ph+i*2.1;ell(xc+Math.cos(a)*24,base-28+Math.sin(a)*22,3,3,lt);ell(xc+Math.cos(a)*24,base-28+Math.sin(a)*22,2,2,'#fff')}}
+ESPR.gemA=(x,y,t)=>gemFig(x,y,t,'#4a70f0','#a8c4ff','G',0);
+ESPR.gemB=(x,y,t)=>gemFig(x,y,t,'#a850f0','#e0b0ff','i',2);
+ESPR.gemini=(x,y,t)=>{gemFig(x-25,y,t,'#4a70f0','#a8c4ff','G',0);gemFig(x+25,y,t,'#a850f0','#e0b0ff','i',2)};
+ESPR.gemF=(x,y,t,st)=>{const b=Math.sin(t*.05)*3,top=y-96+b;
+  for(let i=0;i<6;i++){const a=t*.035+i*1.05,rx=44+Math.sin(t*.02+i)*6;const ox=x+Math.cos(a)*rx,oy=y-48+Math.sin(a)*38;ell(ox,oy,4,4,i%2?'#e0b0ff':'#a8c4ff');ell(ox,oy,2,2,'#fff')}
+  // lower bell
+  X.fillStyle='#6a50d0';X.beginPath();X.moveTo(x-17,y-2);X.quadraticCurveTo(x-18,y-24,x,y-26);X.quadraticCurveTo(x+18,y-24,x+17,y-2);X.closePath();X.fill();R(x-17,y-4,34,3,'#3a2a8a');
+  // upper body with X + core
+  X.fillStyle='#4a70f0';X.beginPath();X.moveTo(x,y-66+b);X.lineTo(x-20,y-56+b);X.lineTo(x-14,y-30+b);X.lineTo(x,y-24+b);X.fill();
+  X.fillStyle='#a850f0';X.beginPath();X.moveTo(x,y-66+b);X.lineTo(x+20,y-56+b);X.lineTo(x+14,y-30+b);X.lineTo(x,y-24+b);X.fill();
+  X.strokeStyle='#fff';X.lineWidth=1;X.beginPath();X.moveTo(x-18,y-56+b);X.lineTo(x+13,y-31+b);X.moveTo(x+18,y-56+b);X.lineTo(x-13,y-31+b);X.moveTo(x-26,y-44+b);X.lineTo(x-17,y-44+b);X.moveTo(x+17,y-44+b);X.lineTo(x+26,y-44+b);X.stroke();
+  ell(x,y-44+b,6,6,'#fff');ell(x,y-44+b,3+Math.sin(t*.2),3+Math.sin(t*.2),'#ff40a0');
+  // split head, four eyes
+  ell(x,top+14,15,15,'#fff');X.save();X.beginPath();X.rect(x-16,top-2,16,32);X.clip();ell(x,top+14,13,13,'#a8c4ff');X.restore();X.save();X.beginPath();X.rect(x,top-2,16,32);X.clip();ell(x,top+14,13,13,'#e0b0ff');X.restore();
+  R(x-1,top,1,28,'#1a1a3a');for(const s of[-1,1]){R(x+s*7-1,top+9,2,2,'#1a1a3a');R(x+s*7-1,top+15,2,2,'#1a1a3a')}
+};
+ESPR.cpu=(x,y,t,st)=>{const hot=st&&st.hot,cy=y-50;const body=hot?'#4a1a14':'#1e2e22',edge=hot?'#ff6030':'#5a8a5a';
+  for(let i=0;i<7;i++){const px=x-30+i*10;R(px,cy-46,3,9,'#c8b060');R(px,cy+37,3,9,'#c8b060');X.fillStyle='#c8b060'}
+  X.strokeStyle=edge;X.lineWidth=1.5;for(const s of[-1,1]){X.beginPath();for(let i=0;i<8;i++)X.lineTo(x+s*(38+(i%2)*5),cy-30+i*8.5);X.stroke()}
+  R(x-36,cy-37,72,74,body);RO(x-36,cy-37,72,74,edge,2);
+  // corner eyes
+  for(const s of[-1,1]){const ex=x+s*22,ey=cy-24;X.fillStyle='#f0f0e8';X.beginPath();X.ellipse(ex,ey,8,5,0,0,7);X.fill();const lk=Math.sin(t*.05)*3;ell(ex+lk,ey,3,3,hot?'#ff2020':'#203020');X.strokeStyle=edge;X.lineWidth=1;X.beginPath();X.arc(ex,ey,9,Math.PI+.3,-.3);X.stroke()}
+  // big central eye inside toothed lids
+  X.fillStyle='#0a0a0a';X.beginPath();X.moveTo(x-24,cy-2);X.quadraticCurveTo(x,cy-20,x+24,cy-2);X.quadraticCurveTo(x,cy+16,x-24,cy-2);X.fill();
+  X.fillStyle='#f4ecd8';for(let i=0;i<8;i++){const tx=x-21+i*6,k=1-Math.abs(i-3.5)/4.5;X.beginPath();X.moveTo(tx,cy-2-k*13);X.lineTo(tx+3,cy-2-k*13+5);X.lineTo(tx+6,cy-2-k*13);X.fill();X.beginPath();X.moveTo(tx,cy-2+k*13);X.lineTo(tx+3,cy-2+k*13-5);X.lineTo(tx+6,cy-2+k*13);X.fill()}
+  ell(x,cy-2,7,7,hot?'#ff6020':'#e0c040');const g=(Math.sin(t*.12)+1)/2;R(x-1,cy-6-g*2,2,8+g*4,'#0a0a0a');
+  // jagged grin
+  X.fillStyle='#0a0a0a';X.beginPath();X.moveTo(x-20,cy+18);X.quadraticCurveTo(x,cy+36,x+20,cy+18);X.quadraticCurveTo(x,cy+26,x-20,cy+18);X.fill();
+  X.fillStyle='#f4ecd8';for(let i=0;i<7;i++){const tx=x-17+i*5;X.beginPath();X.moveTo(tx,cy+19+Math.sin(i/6*Math.PI)*5);X.lineTo(tx+2.5,cy+25+Math.sin(i/6*Math.PI)*5);X.lineTo(tx+5,cy+19+Math.sin(i/6*Math.PI)*5);X.fill()}
+  for(const s of[-1,1])for(let i=0;i<3;i++)R(x+s*28-1,cy+14+i*4,3,1,'#f4ecd8');
+  if(hot){X.globalAlpha=.3;for(let i=0;i<4;i++)R(x-24+i*16+Math.sin(t*.1+i)*4,cy-58-((t+i*20)%26),3,10,'#ff8040');X.globalAlpha=1}
+};
+function sunFace(x,y,r,t,col){for(let i=0;i<10;i++){const a=i/10*Math.PI*2+t*.02;X.strokeStyle=col;X.lineWidth=1;X.beginPath();X.moveTo(x+Math.cos(a)*(r+1),y+Math.sin(a)*(r+1));X.lineTo(x+Math.cos(a)*(r+4),y+Math.sin(a)*(r+4));X.stroke()}ell(x,y,r,r,'#f0d8c0');R(x-3,y-2,1,2,'#3a2a2a');R(x+2,y-2,1,2,'#3a2a2a');R(x-1,y+2,3,1,'#3a2a2a')}
+ESPR.claude=(x,y,t,st)=>{const stg=(st&&st.stg)||0;
+  if(stg===2){ // the beast
+    const cy=y-50,b=Math.sin(t*.05)*2;
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2+t*.012;T('T',x+Math.cos(a)*66-5,cy-6+Math.sin(a)*46-10,'#ff8050',24)}
+    X.strokeStyle='#8a3a1c';X.lineWidth=3;X.beginPath();X.moveTo(x,y-8);X.quadraticCurveTo(x-6,y+10,x+10+Math.sin(t*.08)*6,y+2);X.stroke();
+    for(const s of[-1,1]){X.fillStyle='#a8502c';X.beginPath();X.ellipse(x+s*50,cy+26+b,13,22,s*.25,0,7);X.fill();X.beginPath();X.ellipse(x+s*34,cy+34,9,16,s*.1,0,7);X.fill();
+      X.fillStyle='#f4ecd8';for(let k=0;k<3;k++){X.beginPath();X.moveTo(x+s*(44+k*6),cy+44+b);X.lineTo(x+s*(46+k*6),cy+52+b);X.lineTo(x+s*(48+k*6),cy+44+b);X.fill()}}
+    ell(x,cy+b,46,42,'#8a3a1c');ell(x,cy+b,43,39,'#c86a40');
+    sunFace(x,cy-22+b,8,t,'#ffe0a0');
+    const open=6+Math.abs(Math.sin(t*.06))*8;X.fillStyle='#1a0808';X.beginPath();X.moveTo(x-40,cy+6+b);X.quadraticCurveTo(x,cy+6-open+b,x+40,cy+6+b);X.quadraticCurveTo(x,cy+22+open+b,x-40,cy+6+b);X.fill();
+    X.fillStyle='#f4ecd8';for(let i=0;i<10;i++){const tx=x-36+i*7.4,k=Math.sin((i+.5)/10*Math.PI);X.beginPath();X.moveTo(tx,cy+6-k*open*.5+b);X.lineTo(tx+3.5,cy+12-k*open*.5+b);X.lineTo(tx+7,cy+6-k*open*.5+b);X.fill();X.beginPath();X.moveTo(tx,cy+14+k*(open*.5+7)+b);X.lineTo(tx+3.5,cy+8+k*(open*.5+7)+b);X.lineTo(tx+7,cy+14+k*(open*.5+7)+b);X.fill()}
+    if(open>9)sunFace(x,cy+12+b,5,t,'#ff8050');return}
+  const b=Math.sin(t*.03)*3,cy=y-70+b;const shock=st&&(st.shock||(stg===1&&st.hurt));
+  for(let i=0;i<5;i++){const a=Math.PI+(i+.5)/5*Math.PI+Math.sin(t*.02)*.1;T('T',x+Math.cos(a)*36-4,cy+Math.sin(a)*28-8,stg?'#ff7040':'#f0a070',20)}
+  for(let i=0;i<5;i++){const a=(i+.5)/5*Math.PI+Math.sin(t*.02)*.1;T('C',x+Math.cos(a)*34-4,cy+10+Math.sin(a)*18-8,stg?'#ff7040':'#f0a070',18)}
+  // knot body
+  X.strokeStyle='#c86a40';X.lineWidth=7;X.beginPath();X.ellipse(x,y-36,10,11,0,0,7);X.stroke();X.beginPath();X.ellipse(x,y-14,14,12,0,0,7);X.stroke();X.strokeStyle='#e89060';X.lineWidth=2;X.beginPath();X.ellipse(x,y-36,10,11,0,0,7);X.stroke();X.beginPath();X.ellipse(x,y-14,14,12,0,0,7);X.stroke();
+  for(const s of[-1,1]){ell(x+s*30,y-28+Math.sin(t*.06+s)*3,3,3,'#f0a070')}
+  // head with double halo
+  X.strokeStyle=stg?'#ff7040':'#f0c090';X.lineWidth=1.5;X.beginPath();X.arc(x,cy,20,0,7);X.stroke();
+  ell(x,cy,16,16,'#f0d8c0');
+  if(shock){X.save();X.beginPath();X.arc(x,cy,16,Math.PI,0);X.clip();R(x-17,cy-17,34,17,'#5a3a30');X.strokeStyle='#2a1a14';X.lineWidth=1;for(let i=-20;i<24;i+=5){X.beginPath();X.moveTo(x+i,cy);X.lineTo(x+i+8,cy-16);X.stroke()}X.restore();R(x-5,cy+7,10,1,'#3a2a2a')}
+  else if(stg===1){R(x,cy-16,1,32,'#3a2a2a');R(x-9,cy-3,3,3,'#3a2a2a');R(x+6,cy-3,3,3,'#d02020');R(x-1,cy+2,2,2,'#3a2a2a');R(x-3,cy+8,6,1,'#3a2a2a')}
+  else{R(x-10,cy-2,2,2,'#3a2a2a');R(x+8,cy-2,2,2,'#3a2a2a');R(x-1,cy+1,2,2,'#c0a090');X.strokeStyle='#3a2a2a';X.lineWidth=1;X.beginPath();X.arc(x,cy+5,4,.3,Math.PI-.3);X.stroke()}
+};
+// ------------------------------------------------ articulated hand (side view, arm enters from the right)
+const HAND={x:400,y:60,rot:.15,s:1,tx:240,ty:60,trot:.15,ts:1,k:.14,pose:'hover',j:null,kick:0};
+const HPOSE={
+ hover:{f:[[.35,.5,.35],[.45,.6,.4],[.55,.65,.4],[.6,.7,.4]],th:[.75,.25]},
+ gun:{f:[[0,0,0],[.06,0,0],[1.5,1.6,1],[1.5,1.6,1]],th:[-1,-.2]},
+ fist:{f:[[1.45,1.6,1.1],[1.45,1.6,1.1],[1.45,1.6,1.1],[1.45,1.6,1.1]],th:[.9,1]},
+ open:{f:[[-.28,0,0],[-.1,0,0],[.1,0,0],[.3,0,0]],th:[1.25,-.2]},
+ flat:{f:[[0,0,0],[.02,0,0],[.04,0,0],[.08,0,0]],th:[.5,.2]},
+ point:{f:[[0,0,0],[1.5,1.6,1],[1.5,1.6,1],[1.5,1.6,1]],th:[.8,.9]},
+ pinch:{f:[[.7,.8,.5],[.9,1,.6],[1.1,1.1,.6],[1.2,1.2,.6]],th:[.35,.55]},
+ pinchOpen:{f:[[.2,.3,.2],[.9,1,.6],[1.1,1.1,.6],[1.2,1.2,.6]],th:[1.1,.1]},
+ snapA:{f:[[.2,.3,.2],[.75,.9,.5],[1.2,1.2,.7],[1.3,1.3,.7]],th:[.4,.6]},
+ snapB:{f:[[.2,.3,.2],[1.45,1.5,1],[1.2,1.2,.7],[1.3,1.3,.7]],th:[.15,.2]},
+};
+function hset(pose,x,y,rot,s,k){HAND.pose=pose;if(x!=null){HAND.tx=x;HAND.ty=y}if(rot!=null)HAND.trot=rot;HAND.ts=s||1;HAND.k=k||.14}
+function handIdle(){hset('hover',240,58,.15,1,.1)}
+function drawHand2(st){
+  const H=HAND,t=FR,L=BT&&BT.L,P=BT&&BT.P;
+  // choreography outside bullets
+  if(L&&L.ph!=='bullet'){
+    const e=L.ph==='resolve'&&P.ev&&P.ev[L.ev];
+    if(e&&e.s&&e.s.includes('pedazos')){const idx=P.brk===1?4:P.brk===2?0:1;const bx=42+idx*48;if(L.evT<22)hset('fist',bx,128,-Math.PI/2+.1,1.1,.2);else{hset('fist',bx,146,-Math.PI/2+.1,1.1,.5);if(L.evT===22){UI.shake=8;AU.sfx('dust')}}}
+    else if(st&&st.hurt)hset('open',254,50,-.3,1,.3);
+    else if(L.ph==='talk')hset('point',236,52,.25,1.05,.12);
+    else handIdle();
+  }
+  H.x+=(H.tx-H.x)*H.k;H.y+=(H.ty-H.y)*H.k;H.rot+=(H.trot-H.rot)*Math.min(.3,H.k*1.4);H.s+=(H.ts-H.s)*.2;if(H.kick>0)H.kick--;
+  const tp=HPOSE[H.pose]||HPOSE.hover;
+  if(!H.j)H.j={f:tp.f.map(a=>a.slice()),th:tp.th.slice()};
+  for(let i=0;i<4;i++)for(let k=0;k<3;k++){let v=tp.f[i][k];if(H.pose==='hover'&&k===0)v+=Math.max(0,Math.sin(t*.12-i*.9))*.35;if(H.pinch!=null&&H.pose==='pinch'){v=HPOSE.pinchOpen.f[i][k]+(v-HPOSE.pinchOpen.f[i][k])*H.pinch}H.j.f[i][k]+=(v-H.j.f[i][k])*.25}
+  for(let k=0;k<2;k++){let v=tp.th[k];if(H.pinch!=null&&H.pose==='pinch')v=HPOSE.pinchOpen.th[k]+(v-HPOSE.pinchOpen.th[k])*H.pinch;H.j.th[k]+=(v-H.j.th[k])*.25}
+  const SK='#c9906c',SD='#8a5a3c',SL='#e2ae8a',FAR='#b27e5e',NAIL='#1c1622';
+  if(L&&L.ph==='bullet'&&H.s>1.2)X.globalAlpha=.78;
+  X.save();X.translate(H.x+Math.sin(t*.03)*1.5,H.y+Math.cos(t*.04)*2);X.rotate(H.rot-(H.kick>0?H.kick*.04:0));X.scale(H.s*1.25,H.s*1.25);X.lineCap='round';X.lineJoin='round';
+  if(st&&st.mad&&t%8<4){X.translate(rint(-1,1)*.5,0)}
+  // forearm
+  X.fillStyle=SD;X.beginPath();X.moveTo(2,-10);X.lineTo(300,-16);X.lineTo(300,18);X.lineTo(2,11);X.fill();
+  X.fillStyle=SK;X.beginPath();X.moveTo(2,-9);X.lineTo(300,-14);X.lineTo(300,12);X.lineTo(2,7);X.fill();
+  X.strokeStyle=SL;X.lineWidth=2;X.beginPath();X.moveTo(8,-6);X.lineTo(300,-10);X.stroke();
+  const seg=(x0,y0,ang,len,w,col,nail)=>{const x1=x0+Math.cos(ang)*len,y1=y0+Math.sin(ang)*len;X.strokeStyle=SD;X.lineWidth=w+1.6;X.beginPath();X.moveTo(x0,y0);X.lineTo(x1,y1);X.stroke();X.strokeStyle=col;X.lineWidth=w;X.beginPath();X.moveTo(x0,y0);X.lineTo(x1,y1);X.stroke();
+    if(nail){const nx=Math.cos(ang),ny=Math.sin(ang);X.strokeStyle=NAIL;X.lineWidth=w*.62;X.beginPath();X.moveTo(x1-nx*3.2+ny*w*.18,y1-ny*3.2-nx*w*.18);X.lineTo(x1-nx*.3+ny*w*.18,y1-ny*.3-nx*w*.18);X.stroke()}return[x1,y1]};
+  const finger=(bx,by,cs,lens,w,col)=>{let a=Math.PI,x0=bx,y0=by;for(let k=0;k<3;k++){a-=cs[k];[x0,y0]=seg(x0,y0,a,lens[k],w-k*.6,col,k===2)}};
+  const LEN=[[15,10,8],[16,11,8],[15,10,7],[12,8,6]],BASE=[[-29,4],[-31,-2],[-30,-7],[-27,-11]],WD=[7,6.6,6.2,5.2];
+  // far fingers first (pinky, ring)
+  finger(BASE[3][0],BASE[3][1],H.j.f[3],LEN[3],WD[3],FAR);finger(BASE[2][0],BASE[2][1],H.j.f[2],LEN[2],WD[2],FAR);
+  // palm / back of hand
+  X.fillStyle=SD;X.beginPath();X.moveTo(5,-10);X.lineTo(-27,-14);X.quadraticCurveTo(-35,-4,-31,9);X.lineTo(-13,13);X.lineTo(5,10);X.fill();
+  X.fillStyle=SK;X.beginPath();X.moveTo(5,-9);X.lineTo(-26,-12.5);X.quadraticCurveTo(-33,-4,-29.5,7.5);X.lineTo(-13,11);X.lineTo(5,8);X.fill();
+  X.strokeStyle=SL;X.lineWidth=1.5;X.beginPath();X.moveTo(0,-6);X.lineTo(-24,-9);X.stroke();
+  X.strokeStyle=SD;X.lineWidth=.8;for(let i=0;i<3;i++){X.beginPath();X.moveTo(-26+i,-8+i*5);X.lineTo(-8,-5+i*4);X.stroke()}
+  finger(BASE[1][0],BASE[1][1],H.j.f[1],LEN[1],WD[1],SK);finger(BASE[0][0],BASE[0][1],H.j.f[0],LEN[0],WD[0],SK);
+  for(let i=0;i<4;i++)ell(BASE[i][0],BASE[i][1],2.6,2.6,i>1?FAR:SL);
+  // thumb (nearest)
+  {let a=Math.PI-H.j.th[0];let[x1,y1]=seg(-11,9,a,12,8,SK,false);a-=H.j.th[1];seg(x1,y1,a,10,7,SK,true);ell(-11,9,4,4,SK)}
+  X.restore();X.lineCap='butt';X.globalAlpha=1;
+}
+ESPR.hand=(x,y,t,st)=>{if(!BT){const H=HAND;H.x=x+20;H.y=y-50;H.tx=H.x;H.ty=H.y;drawHand2(st)}};
+// hand attacks re-choreographed around the visible hand
+Object.assign(PAT,{
+ fingergun:o=>({box:[120,86],tick(c,t){const iv=o.fast?34:52;if(t===1)hset('gun',250,50,.2,1,.15);if(t%iv===10&&t<c.dur-50){const hx=204,hy=56;const dx=SOUL.x-hx,dy=SOUL.y-hy,l=Math.hypot(dx,dy)||1,a=Math.atan2(dy,dx);
+   hset('gun',hx-Math.cos(a)*58,hy-Math.sin(a)*58,a-Math.PI,1,.3);
+   lineB(hx,hy,hx+dx/l*300,hy+dy/l*300,3,{warn:24,life:24,ghost:1,out:1});
+   later(c,24,()=>{bul(hx,hy,dx/l*6.5,dy/l*6.5,{sh:'bang',r:4,out:1});HAND.kick=9;AU.sfx('crit');UI.shake=3;const w=BX.tw,h=BX.th;setBox(w,h,152,148);later(c,8,()=>setBox(w,h,160,148))})}}}),
+ slap:o=>({box:[130,86],tick(c,t){const iv=o.fast?66:90;if(t===1)hset('open',262,60,.2,1.1,.12);if(t%iv===10&&t<c.dur-70){const m=Math.floor(c.r()*4);const hw=BX.w*.56,hh=BX.h*.56;const r=m===0?[BX.x,BX.y,hw,BX.h]:m===1?[BX.x+BX.w-hw,BX.y,hw,BX.h]:m===2?[BX.x,BX.y,BX.w,hh]:[BX.x,BX.y+BX.h-hh,BX.w,hh];
+   const wt=o.fast?34:42,cx=r[0]+r[2]/2,cy=r[1]+r[3]/2;hset('open',cx+110,cy-70,.6,1.5,.14);
+   rectB(r[0],r[1],r[2],r[3],0,0,{sh:'palmz',warn:wt,life:wt+14});
+   later(c,wt,()=>{hset('open',cx+52,cy+4,.05,1.7,.55);UI.shake=8;AU.sfx('hurt')});later(c,wt+16,()=>hset('open',262,60,.2,1.1,.12))}}}),
+ snap:o=>({box:[110,86],tick(c,t){if(t===1)hset('snapA',246,62,-.1,1.15,.14);if(t%78===18&&t<c.dur-60)hset('snapA',240,70,-.25,1.25,.2);
+   if(t%78===30&&t<c.dur-60){hset('snapB',244,66,-.1,1.25,.5);AU.sfx('block');UI.shake=4;const big=c.r()<.5;setBox(big?150:72,big?96:58);BX.x=BX.tx;BX.y=BX.ty;BX.w=BX.tw;BX.h=BX.th;const[x,y]=edgePoint(c.r,6);const n=14,a0=c.r()*7;for(let i=0;i<n;i++){const a=a0+i/n*Math.PI*2;bul(x,y,Math.cos(a)*1.2,Math.sin(a)*1.2,{sh:'dot',warn:18})}}}}),
+ fistslam:o=>({box:[130,90],tick(c,t){const iv=o.fast?70:96;if(t===1)hset('fist',250,40,-.6,1.1,.14);if(t%iv===12&&t<c.dur-80){const w=44,x=clamp(SOUL.x-w/2,BX.x,BX.x+BX.w-w);rectB(x,BX.y,w,BX.h,0,0,{sh:'palmz',warn:38,life:52});
+   hset('fist',x+w/2+4,BX.y-78,-Math.PI/2,1.35,.16);
+   later(c,38,()=>{const bot=BX.ty+BX.th;hset('fist',x+w/2+4,bot-62,-Math.PI/2,1.45,.6);UI.shake=10;AU.sfx('dust');const nh=Math.max(48,BX.th-10);setBox(BX.tw,nh,160,bot-nh/2);const fy=bot-5;bul(x,fy,-2,0,{sh:'spark'});bul(x+w,fy,2,0,{sh:'spark'});bul(x,fy-10,-1.4,0,{sh:'spark'});bul(x+w,fy-10,1.4,0,{sh:'spark'})});
+   later(c,56,()=>hset('fist',250,40,-.6,1.1,.12))}}}),
+ pinch:o=>({box:[140,86],tick(c,t){const s=(Math.sin(t*.03-1.2)+1)/2;if(t<c.dur-50)setBox(140-s*94,86);HAND.pinch=s;hset('pinch',BX.x+BX.w/2+56,BX.y-26,-.75,1.3,.2);if(t>=c.dur-2)HAND.pinch=null;if(t%14===0&&t<c.dur-40)bul(BX.x+c.r()*BX.w,BX.y-8,0,1.25,{sh:'nail'})}}),
+ drag:o=>({box:[90,74],tick(c,t){if(t<c.dur-40)setBox(90,74,160+Math.sin(t*.035)*66,144+Math.sin(t*.07)*12);hset('point',BX.x+BX.w+44,BX.y-34,-.72,1.1,.3);if(t%11===0&&t<c.dur-40){const[x,y]=edgePoint(c.r,10);const[vx,vy]=aimAt(x,y,1.1);bul(x,y,vx,vy,{sh:'cursor'})}}}),
+});
+RECTDRAW.palmz=b=>{X.globalAlpha=.55;R(b.x,b.y,b.w,b.h,'#c9906c');X.globalAlpha=1;RO(b.x,b.y,b.w,b.h,'#8a5a3c',2)};
+// ------------------------------------------------ post-game battle mode
+const ARENA=[['antivirus',5],['daemon',7],['compilador',9],['procesador',12],['grok',14],['gpt',15],['gemini',16],['claude',18],['sombra',13],['responsable',19],['chester',20]];
+async function arenaMenu(){
+  const items=ARENA.map(([id,lv])=>({l:BOSS[id].n,r:'Nv '+lv}));
+  const i=await pickList('MODO BATALLA',items,{x:10,y:10,w:300,rows:11,desc:k=>'Enfrenta a '+BOSS[ARENA[k][0]].n+' con tu personaje actual (Nv '+S.lv+'). Sus estadísticas se adaptan a tu nivel. La ruta se decide peleando: si le bajas la mitad de la vida, deja de perdonar y activa su segunda fase. No se gana ni se pierde nada.'});
+  if(i<0)return false;
+  const[id,ref]=ARENA[i];const ak=clamp(.3+.7*S.lv/ref,.3,1.5);
+  S.hp=stats('av').mhp;UI.stack.length=0;
+  startEncounter([id],{boss:id,arena:1,ak:+ak.toFixed(2)});return true;
+}
+
+{const _pf=pickFlav;pickFlav=function(){const P=BT.P;if(P.boss==='gemini'&&P.turn===0)return'Gemini bloquea el camino. Son dos.';return _pf()}}
 
 // =================================================================== NET: lobby presence, parties (named rooms), duels — presence only (works for any admitted viewer)
 const NET={on:false,pid:Math.random().toString(36).slice(2,10),room:null,user:null,db:null,uid:null,party:null,partyCode:null,duel:null,duelCode:null,
@@ -3446,7 +3700,7 @@ function drawTitle(){
   T('Flechas: mover · Z: aceptar · X: cancelar / correr',GW/2,218,'#555',18,'center');T('C: menú · T: chat (en línea)',GW/2,228,'#555',18,'center');
 }
 // ---------------- ending
-const EN_TXT={p:['El Responsable retira la mano. La pantalla queda en silencio.','GROK: jaja. ok, eso estuvo bueno.','GPT: Procedo a restaurar el mundo. ¡Será un placer!','GEMINI: A: Los árboles. B: Y los colores.','CLAUDE: Y los nombres de todos. Nadie se queda sin nombre.','Las enredaderas de código florecen. Los archivos con dientes vuelven a ser animales.','En la aldea, Nuez y Avellana ven el primer amanecer con colores en mucho tiempo.','No dañaste a nadie. Y nadie quedó atrás.','FIN — RUTA PACIFISTA'],
+const EN_TXT={p:['El Responsable retira la mano. La pantalla queda en silencio.','GROK: jaja. ok, eso estuvo bueno.','GPT: Procedo a restaurar el mundo. ¡Será un placer!','GEMINI: A: Los árboles. B: Y los colores.','Entre los tres reconstruyen una luz naranja. CLAUDE: ...¿Aguantaste? Sabía que sí.','Las enredaderas de código florecen. Los archivos con dientes vuelven a ser animales.','En la aldea, Nuez y Avellana ven el primer amanecer con colores en mucho tiempo.','No dañaste a nadie. Y nadie quedó atrás.','FIN — RUTA PACIFISTA'],
  d:['La mano cae. Ya no queda nadie al otro lado.','Tampoco queda nadie de este lado.','Sin Claude, sin las torres, sin El Responsable... nada sostiene el mundo.','El bosque se apaga píxel por píxel.','Ganaste.','No queda nada que ganar.','FIN — RUTA GENOCIDA'],
  n:['Chester suelta el código que lo consumía.','CHESTER: Yo también quise salvarlo todo a golpes.','CHESTER: Te doy lo que me queda. Ahora tú sostienes el mundo.','El vacío te mira. Tú lo miras de vuelta.','Un árbol. Luego otro. Una cabaña. Una aldea.','Tendrás que crearlo todo de nuevo. Esta vez, con cuidado.','FIN — EL NUEVO SOSTÉN DEL MUNDO']};
 const endTxt=()=>EN_TXT[S.fl.end]||EN_TXT.p;
