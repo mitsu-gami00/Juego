@@ -3814,6 +3814,240 @@ function verityAfter(P,B,res){
 {const _draw=draw;draw=function(){if(GS==='verityend'){nx();X.clearRect(0,0,640,480);CAMX=0;CAMY=0;gx();R(0,0,GW,GH,'#000');withScale(160,150,1.4,()=>drawEnemy('verity',160,150,FR,{mad:1}));return}_draw()}}
 {const _step=step;step=function(){if(GS==='verityend'){FR++;clearKeys();return}_step()}}
 
+// =================================================================== EXT4: corridors + puzzles, three-headed bird, Voraz redesign, battle lights & particles
+// ------------------------------------------------ new corridor rooms
+RM('cueva',{n:'Cueva de las raíces',zone:'bosque',mus:'torre',enc:'bosque',rate:.7,dark:1,pad:'#',map:[
+ '####..##############',
+ '####..##############',
+ '###....#######....##',
+ '###.....#####......#',
+ '####.....###...##..#',
+ '#####.........###..#',
+ '######......#####..#',
+ '##....##########...#',
+ '##.....#####......##',
+ '###..........#######',
+ '####....,....#######',
+ '#######....#########',
+ '########..##########',
+ '########..##########'],
+ ex:[{r:[4,0,2,1],to:'cruce',at:[15.5,14],d:1},{r:[8,13,2,1],to:'win1',at:[3,1.5],d:0}],
+ obj:[{k:'chest',x:14,y:2,id:'cueva',give:['i','dorada'],t:'Encontraste una BELLOTA DORADA entre las raíces.'},{k:'sign',x:3,y:8,t:['Hongos que brillan en la oscuridad. Alguien talló: "el camino corto no existe".']},{k:'glow',x:5,y:8},{k:'glow',x:14,y:4},{k:'glow',x:10,y:10}]});
+RM('win2b',{n:'Windows · Panel de control',zone:'windows',mus:'windows',enc:'windows',rate:.7,pad:' ',map:[
+ '##############################',
+ '#............................#',
+ '#....,..........,............#',
+ '#............................#',
+ '#.......T...........T........#',
+ '#............................#',
+ '#............................#',
+ '..............................',
+ '..............................',
+ '#.....,..............,.......#',
+ '#............................#',
+ '##############################'],
+ ex:[{r:[0,7,1,2],to:'win2',at:[28,7.5],d:2},{r:[29,7,1,2],to:'win3',at:[1,7.5],d:3}],
+ obj:[{k:'oplate',x:6,y:3,g:'w2b',n:3,s:'▲'},{k:'oplate',x:20,y:2,g:'w2b',n:1,s:'●'},{k:'oplate',x:12,y:9,g:'w2b',n:4,s:'■'},{k:'oplate',x:22,y:9,g:'w2b',n:2,s:'◆'},
+  {k:'gate',x:26,y:7,h:2,cond:'order:w2b:4',id:'w2bgate'},{k:'sign',x:3,y:5,t:['Asistente de instalación: "Pulse los botones en este orden: ● ◆ ▲ ■".','"Si se equivoca, el asistente empezará de nuevo. Como siempre."']}]});
+RM('linux1b',{n:'Linux · /etc',zone:'linux',mus:'linux',enc:'linux',rate:.8,pad:' ',map:[
+ '##############################',
+ '#.....T..........T...........#',
+ '#............................#',
+ '#....,..........,............#',
+ '#............................#',
+ '#............................#',
+ '#............................#',
+ '..............................',
+ '..............................',
+ '#.....,..............,.......#',
+ '#...T.........T..............#',
+ '##############################'],
+ ex:[{r:[0,7,1,2],to:'linux1',at:[28,7.5],d:2},{r:[29,7,1,2],to:'linux2',at:[1,7.5],d:3}],
+ obj:[{k:'term2',x:14,y:4},{k:'gate',x:26,y:7,h:2,cond:'t2',id:'l1bgate'},{k:'chest',x:22,y:2,id:'l1b',give:['i','retina'],t:'Encontraste un RETINA SOUR.'},
+  {k:'sign',x:8,y:2,t:['README: "La terminal hace dos preguntas. Los comandos más útiles son los que te dicen dónde estás y quién eres."']}]});
+RM('codigo1b',{n:'Código · Memoria no inicializada',zone:'codigo',mus:'codigo',pad:' ',map:[
+ '##############################',
+ '#............................#',
+ '#............................#',
+ '#............................#',
+ '#............................#',
+ '#............................#',
+ '#............................#',
+ '..............................',
+ '..............................',
+ '#............................#',
+ '#............................#',
+ '##############################'],
+ ex:[{r:[0,7,1,2],to:'codigo1',at:[32,8.5],d:2},{r:[29,7,1,2],to:'codigo2',at:[1,7.5],d:3}],
+ obj:[{k:'sign',x:3,y:5,t:['"Cuidado: aquí el suelo MIENTE. Hay baldosas que te devuelven al inicio."','"Míralas parpadear y recuerda el camino."']}]});
+for(const[x,a,b]of[[7,1,8],[11,3,10],[15,1,8],[19,3,10],[23,1,8]])for(let y=a;y<=b;y++)ROOMS.codigo1b.obj.push({k:'trap',x,y});
+RM('cpuhall',{n:'Bus de datos',zone:'cpu',mus:'cpu',enc:'codigo',rate:.6,pad:' ',map:[
+ '######..######',
+ '#............#',
+ '#............#',
+ '######..######',
+ '#............#',
+ '#............#',
+ '#....T..T....#',
+ '#............#',
+ '#............#',
+ '#............#',
+ '#....T..T....#',
+ '#............#',
+ '#............#',
+ '######..######',
+ '      ..      '],
+ ex:[{r:[6,0,2,1],to:'procesador',at:[9.5,12],d:1},{r:[6,14,2,1],to:'win3',at:[9.5,2.5],d:0}],
+ obj:[{k:'oplate',x:2,y:5,g:'cpu',n:2,s:'1'},{k:'oplate',x:11,y:8,g:'cpu',n:4,s:'0'},{k:'oplate',x:3,y:11,g:'cpu',n:1,s:'A'},{k:'oplate',x:10,y:4,g:'cpu',n:3,s:'F'},{k:'oplate',x:6,y:8,g:'cpu',n:5,s:'7'},
+  {k:'gate',x:6,y:3,h:1,cond:'order:cpu:5',id:'cpug1'},{k:'gate',x:7,y:3,h:1,cond:'order:cpu:5',id:'cpug2'},{k:'sign',x:4,y:12,t:['Una dirección de memoria grabada en el metal: "0x A1F07".','(Cinco botones. Cinco símbolos.)']}]});
+// seal gate columns in the new rooms
+for(const id of['win2b','linux1b']){const r=ROOMS[id];for(const o of r.obj){if(o.k!=='gate')continue;for(let y=1;y<r.h-1;y++){if(y>=o.y&&y<o.y+(o.h||1))continue;const row=r.map[y];r.map[y]=row.slice(0,o.x)+'#'+row.slice(o.x+1)}}}
+// rewire
+{const fix=(room,to,nto,at)=>{const e=ROOMS[room].ex.find(q=>q.to===to);e.to=nto;e.at=at};
+ fix('cruce','win1','cueva',[4.5,1.5]);fix('win1','cruce','cueva',[8.5,11.6]);
+ fix('win2','win3','win2b',[1,7.5]);fix('win3','win2','win2b',[28,7.5]);
+ fix('linux1','linux2','linux1b',[1,7.5]);fix('linux2','linux1','linux1b',[28,7.5]);
+ fix('codigo1','codigo2','codigo1b',[1,7.5]);fix('codigo2','codigo1','codigo1b',[28,7.5]);
+ fix('procesador','win3','cpuhall',[6.5,1.4]);const p=ROOMS.win3.obj.find(o=>o.k==='panel');p.to='cpuhall';p.at=[6.5,12.4]}
+const CORR={cueva:'win1',win2b:'win3',linux1b:'linux2',codigo1b:'codigo2',cpuhall:'procesador'};
+mapEdges=function(){const e=[];const tgt=id=>MAPN[id]?id:null;
+  for(const id in ROOMS){const outs=ROOMS[id].ex.map(x=>x.to).concat(ROOMS[id].obj.filter(o=>o.to).map(o=>o.to));
+    if(MAPN[id])for(let t of outs){if(!MAPN[t]&&ROOMS[t]){const far=ROOMS[t].ex.map(x=>x.to).find(q=>q!==id&&MAPN[q]);t=far}if(t&&MAPN[t])e.push([id,t])}}
+  return e};
+{const _ms=mapScreen;mapScreen=function(){const real=S.room;if(CORR[real]){S.room=CORR[real];const p=_ms();S.room=real;UI.toast('Estás en un pasillo hacia '+ROOMS[CORR[real]].n,'#aaa');return p}return _ms()}}
+// ------------------------------------------------ puzzle objects
+{const _iso=isSolidObj;isSolidObj=function(o){if(o.k==='oplate'||o.k==='trap'||o.k==='glow')return false;return _iso(o)}}
+{const _c=cond;cond=function(c){if(c&&c.startsWith('order:')){const[,g,n]=c.split(':');return(S.fl['op:'+g]||0)>=+n}if(c==='t2')return!!S.fl.t2;return _c(c)}}
+{const _sy=sortY;sortY=function(o){if(o.k==='oplate'||o.k==='trap'||o.k==='glow')return-1e4;return _sy(o)}}
+{const _st=stepTriggers;stepTriggers=function(){
+  for(const o of OBJS){
+    if(o.k==='oplate'){const on=rectHit([o.x*16+2,o.y*16+2,12,12],PL.x,PL.y);if(on&&!o.in){o.in=1;const cur=S.fl['op:'+o.g]||0;
+        if(o.n<=cur){}else if(o.n===cur+1){S.fl['op:'+o.g]=o.n;AU.sfx('ok');const tot=OBJS.filter(q=>q.k==='oplate'&&q.g===o.g).length;if(o.n===tot)UI.toast('¡Secuencia correcta!','#4f4')}
+        else{S.fl['op:'+o.g]=0;AU.sfx('no');UI.shake=5;UI.toast('Orden incorrecto. Se reinicia.','#f66')}}
+      if(!on)o.in=0}
+    if(o.k==='trap'&&rectHit([o.x*16+1,o.y*16+1,14,14],PL.x,PL.y)){AU.sfx('dust');UI.flash('#c060ff');PL.x=1.5*16+8;PL.y=7.5*16+8;UI.toast('El suelo mentía.','#c060ff');return}
+  }
+  _st()}}
+{const _do=drawObj;drawObj=function(o){const t=FR;
+  if(o.k==='oplate'){const x=o.x*16,y=o.y*16,on=(S.fl['op:'+o.g]||0)>=o.n;R(x+1,y+1,14,14,on?'#40e080':'#3a3a6a');RO(x+1,y+1,14,14,on?'#c0ffd0':'#a0a0ff');T(o.s,x+8,y+1,on?'#063':'#fff',16,'center');return}
+  if(o.k==='trap'){const x=o.x*16,y=o.y*16;const ph=(t+o.x*17+o.y*29)%150;if(ph<14){X.globalAlpha=.55*(1-Math.abs(ph-7)/7);R(x+1,y+1,14,14,'#c060ff');X.globalAlpha=1}return}
+  if(o.k==='glow'){const x=o.x*16+8,y=o.y*16+10;R(x-1,y-2,2,5,'#d8f0d0');ell(x,y-4,4,2,'#60ffa0');return}
+  if(o.k==='term2'){const x=o.x*16,y=o.y*16;R(x,y,16,14,'#1a2a1a');RO(x,y,16,14,'#40ff60');T(S.fl.t2?'OK':'?_',x+2,y+2,'#40ff60',14);R(x+5,y+14,6,2,'#3a4a3a');return}
+  _do(o)}}
+{const _int=interact;interact=async function(){const[fx,fy]=facingPoint();const o=objAtPoint(fx,fy);
+  if(o&&o.k==='term2'&&!NET.playerNear(fx,fy)){AU.sfx('sel');
+    if(S.fl.t2){await say(['$ whoami','viajero. La puerta sigue abierta.']);return}
+    await say(['La terminal parpadea: "Pregunta 1 de 2. ¿Dónde estás?"']);const a=await choose('$ _',['pwd','ls','dónde','cd /']);if(a!==0){AU.sfx('no');await say(['"Comando incorrecto. Reiniciando interrogatorio."']);return}
+    await say(['/etc','"Pregunta 2 de 2. ¿Quién eres?"']);const b=await choose('$ _',['yo','sudo su','whoami','id -claude']);if(b!==2){AU.sfx('no');await say(['"No. Reiniciando interrogatorio."']);return}
+    S.fl.t2=1;AU.sfx('ok');await say(['viajero','"Identidad confirmada." La puerta se abre.']);return}
+  return _int()}}
+// darkness with a light circle (cave)
+let DARKCV=null;
+{const _dw=drawWorld;drawWorld=function(){_dw();if(!ROOM.dark)return;
+  if(!DARKCV){DARKCV=document.createElement('canvas');DARKCV.width=GW;DARKCV.height=GH}
+  const g=DARKCV.getContext('2d');g.globalCompositeOperation='source-over';g.clearRect(0,0,GW,GH);g.fillStyle='rgba(0,0,6,.94)';g.fillRect(0,0,GW,GH);g.globalCompositeOperation='destination-out';
+  const hole=(x,y,r)=>{for(let i=0;i<5;i++){g.globalAlpha=.3;g.beginPath();g.arc(x,y,r*(1-i*.15),0,7);g.fill()}g.globalAlpha=1};
+  hole(PL.x-CAMX_world,PL.y-CAMY_world-8,50+Math.sin(FR*.08)*2);
+  for(const o of OBJS)if(o.k==='glow'||o.k==='chest')hole(o.x*16+8-CAMX_world,o.y*16+8-CAMY_world,18+Math.sin(FR*.05+o.x)*2);
+  for(const gh of NET.ghostsInRoom())hole(gh.x-CAMX_world,gh.y-CAMY_world-8,40);
+  CAMX=0;CAMY=0;gx();X.drawImage(DARKCV,0,0);
+}}
+// ------------------------------------------------ three-headed bird mini-boss
+ESPR.tricefalo=(x,y,t,st)=>{const mad=st&&st.mad,b=Math.sin(t*.07)*2;const body='#e8c060',dk='#b08830',beak='#e06030';
+  for(const s of[-1,1]){R(x+s*9,y-10,2,10,beak);R(x+s*9-3,y-1,8,2,beak)}
+  ell(x+4,y-28+b,22,20,dk);ell(x+4,y-28+b,20,18,body);X.fillStyle=dk;X.beginPath();X.ellipse(x+18,y-26+b,9,13,.4+Math.sin(t*.1)*.15,0,7);X.fill();
+  const head=(hx,hy,r,ang,ph)=>{const k=Math.sin(t*.09+ph)*2;hx+=k;ell(hx,hy,r+1,r+1,dk);ell(hx,hy,r,r,body);
+    X.fillStyle='#fff';X.beginPath();X.ellipse(hx-r*.25,hy-r*.2,2.4,3.4,.2,0,7);X.fill();R(hx-r*.25-1,hy-r*.2-1,2,3,mad?'#d02020':'#1a1a1a');
+    X.fillStyle=beak;X.beginPath();X.moveTo(hx-r*.5,hy+r*.2);X.lineTo(hx+r*.3,hy+r*.2);const o=3+Math.abs(Math.sin(t*.12+ph))*4;X.lineTo(hx-r*.1+Math.cos(ang)*(r+4),hy+r*.2+Math.sin(ang)*(r+4)+o);X.fill();
+    R(hx-2,hy-r-3,1,4,dk);R(hx+1,hy-r-4,1,5,dk)};
+  head(x+18,y-58+b,10,1.3,2);head(x-2,y-62+b,11,1.5,1);head(x-22,y-44+b,14,1.7,0);
+};
+BOSS.tricefalo={n:'Tricéfalo',hp:700,atk:10,def:4,xp:220,g:140,spr:'tricefalo',boss:1,mus:'boss5',dual:1,
+  talk:['¡PÍO!','¡Pío! ...No, me toca a mí. ¡PÍO!','Tres cabezas piensan peor que una.','¿Quién dijo "alpiste"?','¡PÍO PÍO PÍO!'],talk2:['¡NOS PICOTEASTE!','¡A PICOTAZOS!','¡LAS TRES A LA VEZ!'],p2txt:['Las tres cabezas dejan de discutir. Ahora te miran las tres.'],
+  flav:['Un pájaro de tres cabezas. Las tres quieren hablar primero.','Tricéfalo discute consigo mismo sobre quién picotea.','Plumas amarillas por todas partes.'],
+  acts:[{n:'Dar alpiste',t:'Lanzas tres migas. Una para cada cabeza. Milagrosamente, alcanza.',sp:40},{n:'Mediar',t:'Les propones turnos para hablar. La idea les parece revolucionaria.',sp:34,co:1},{n:'Piar',t:'Pías. Las tres cabezas te corrigen la pronunciación.',sp:28}],
+  pats:[['pecks',{}],['eggs',{}],['side',{n:12,sp:1.7,sh:'feather'}]],p2:[['pecks',{fast:1}],['eggs',{fast:1}],['aimed',{n:10,sp:2,sh:'feather'}],['crush',{sh:'feather'}]],
+  spare:'Tricéfalo se va volando, discutiendo en qué dirección.',kill:'Las tres cabezas pían por última vez. A destiempo.'};
+Object.assign(PAT,{
+ pecks:o=>({box:[132,84],tick(c,t){const iv=o.fast?44:60;if(t%iv===8&&t<c.dur-60){const skip=Math.floor(c.r()*3);for(let k=0;k<3;k++){if(k===skip)continue;rectB(BX.x+k*BX.w/3+2,BX.y,BX.w/3-4,BX.h,0,0,{sh:'beak',warn:o.fast?24:30,life:(o.fast?24:30)+14})}later(c,o.fast?24:30,()=>{UI.shake=5;AU.sfx('hit')})}}}),
+ eggs:o=>({box:[130,90],tick(c,t){if(t%(o.fast?26:38)===0&&t<c.dur-90)bul(BX.x+8+c.r()*(BX.w-16),BX.y-8,0,.9,{sh:'egg',r:5,life:50+Math.floor(c.r()*40),burst:1})}}),
+});
+RECTDRAW.beak=b=>{X.fillStyle='#e06030';X.beginPath();X.moveTo(b.x,b.y);X.lineTo(b.x+b.w,b.y);X.lineTo(b.x+b.w/2,b.y+b.h);X.fill();X.fillStyle='#ffb080';X.beginPath();X.moveTo(b.x+b.w*.3,b.y);X.lineTo(b.x+b.w*.5,b.y);X.lineTo(b.x+b.w/2,b.y+b.h*.8);X.fill()};
+BULDRAW2.egg=(b,x,y)=>{ell(x,y,4,5,'#f8f0e0');R(x-2,y-2,1,2,'#fff');if(b.life-b.t<16)R(x-3,y,6,1,'#806040')};
+ARENA.push(['tricefalo',10]);
+{const _se=startEncounter;startEncounter=function(enc,opt){opt=opt||{};
+  if(!opt.boss&&!BT&&Math.random()<.06){enc=['tricefalo'];opt={boss:'tricefalo',ak:+clamp(.3+.7*S.lv/10,.3,2).toFixed(2)};setTimeout(()=>UI.toast('¡Un mini jefe salvaje aparece!','#ffe040'),200)}
+  return _se(enc,opt)}}
+{const _br=bossReward;bossReward=function(id,killed){_br(id,killed);if(id==='tricefalo')delete S.fl['b:tricefalo']}}
+// ------------------------------------------------ Voraz, from the sketch: ball, huge jagged grin, one dot eye, curled horns, tail
+ESPR.verity=(x,y,t,st)=>{const mad=st&&st.mad,b=Math.sin(t*.05)*3,cy=y-50+b;const j=t%34<3?rint(-2,2):0;const C1='#3a1450',C2=mad?'#c890e8':'#b890e0',C3='#d8b8f4';
+  // tail
+  X.strokeStyle=C1;X.lineWidth=6;X.lineCap='round';X.beginPath();X.moveTo(x+30+j,cy+14);X.quadraticCurveTo(x+52,cy+18+Math.sin(t*.08)*5,x+60,cy+40);X.stroke();X.strokeStyle=C2;X.lineWidth=3;X.beginPath();X.moveTo(x+30+j,cy+14);X.quadraticCurveTo(x+52,cy+18+Math.sin(t*.08)*5,x+60,cy+40);X.stroke();
+  X.fillStyle=C1;X.beginPath();X.moveTo(x+56,cy+38);X.lineTo(x+68,cy+46);X.lineTo(x+58,cy+48);X.fill();X.lineCap='butt';
+  // body ball with a heart-shaped notch on top
+  ell(x+j,cy,43,41,C1);ell(x+j,cy,40,38,C2);X.fillStyle=C3;X.beginPath();X.ellipse(x-12+j,cy-16,16,10,-.4,0,7);X.fill();
+  X.fillStyle=C1;X.beginPath();X.moveTo(x-8+j,cy-40);X.lineTo(x+j,cy-30);X.lineTo(x+8+j,cy-40);X.fill();
+  // curled horns hanging down the sides
+  for(const s of[-1,1]){X.strokeStyle=C1;X.lineWidth=7;X.lineCap='round';X.beginPath();X.moveTo(x+s*16+j,cy-36);X.quadraticCurveTo(x+s*40+j,cy-40,x+s*36+j,cy-14);X.quadraticCurveTo(x+s*33+j,cy+2,x+s*42+j,cy);X.stroke();
+    X.strokeStyle='#f0e0c0';X.lineWidth=3.5;X.beginPath();X.moveTo(x+s*16+j,cy-36);X.quadraticCurveTo(x+s*40+j,cy-40,x+s*36+j,cy-14);X.quadraticCurveTo(x+s*33+j,cy+2,x+s*42+j,cy);X.stroke();
+    X.beginPath();X.arc(x+s*41+j,cy+3,3.5,0,5);X.stroke();X.lineCap='butt'}
+  // the single eye
+  let lx=0,ly=0;if(BT&&BT.L.ph==='bullet'){const dx=SOUL.x-x,dy=SOUL.y-(cy-8),l=Math.hypot(dx,dy)||1;lx=dx/l*3;ly=dy/l*3}
+  ell(x+j+lx,cy-8+ly,mad?5:3.5,mad?5:3.5,mad?'#ff2040':'#1a0a24');if(mad){ell(x+j+lx,cy-8+ly,2,2,'#fff')}
+  // the grin
+  const open=mad?9+Math.abs(Math.sin(t*.1))*7:2+Math.abs(Math.sin(t*.05))*3;
+  X.fillStyle='#2a0a1e';X.beginPath();X.moveTo(x-37+j,cy+4);X.quadraticCurveTo(x+j,cy+22,x+37+j,cy+4);X.quadraticCurveTo(x+j,cy+28+open*1.5,x-37+j,cy+4);X.fill();
+  X.fillStyle='#f4ecd8';for(let i=0;i<13;i++){const u=(i+.5)/13,tx=x-35+i*5.4+j,ty=cy+4+Math.sin(u*Math.PI)*8.5;X.beginPath();X.moveTo(tx,ty);X.lineTo(tx+2.7,ty+5+((i*7)%3));X.lineTo(tx+5.4,ty);X.fill()}
+  if(open>7)for(let i=0;i<9;i++){const u=(i+.5)/9,tx=x-25+i*5.6+j,ty=cy+10+Math.sin(u*Math.PI)*(8+open*1.2);X.beginPath();X.moveTo(tx,ty);X.lineTo(tx+2.8,ty-5);X.lineTo(tx+5.6,ty);X.fill()}
+  X.strokeStyle=C1;X.lineWidth=1.5;for(const s of[-1,1]){X.beginPath();X.moveTo(x+s*37+j,cy+4);X.lineTo(x+s*41+j,cy-1);X.stroke()}
+  for(let i=0;i<2;i++)R(x-8+i*14+j,cy+24+open,2,4+((t>>2)+i*5)%7,'#c0e0ff');
+};
+BOSS.verity.flav=['Voraz te mira con su único ojo. No parpadea.','Voraz se relame. El menú tiembla.','Sus cuernos rizados se enroscan un poco más.'];
+// ------------------------------------------------ battle lights & particles
+const PARTS=[];
+function spark(x,y,n,c,sp,life){for(let i=0;i<n;i++){const a=Math.random()*7,v=(sp||2)*(.4+Math.random());PARTS.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-.5,l:life||26,m:life||26,c,g:.06})}if(PARTS.length>260)PARTS.splice(0,PARTS.length-260)}
+function drawParts(){X.globalCompositeOperation='lighter';for(let i=PARTS.length-1;i>=0;i--){const p=PARTS[i];p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.vx*=.97;if(--p.l<=0){PARTS.splice(i,1);continue}X.globalAlpha=p.l/p.m;R(p.x,p.y,p.l>p.m*.5?2:1,p.l>p.m*.5?2:1,p.c)}X.globalAlpha=1;X.globalCompositeOperation='source-over'}
+{const _bg=drawBattleBG;drawBattleBG=function(zone){_bg(zone);const ac=(ZONES[zone]||ZONES.bosque).ac,P=BT&&BT.P;const hot=P&&P.p2;
+  X.globalCompositeOperation='lighter';
+  // light shafts
+  for(let i=0;i<4;i++){const sx=((FR*.25+i*97)%(GW+120))-60;X.globalAlpha=.05+.02*Math.sin(FR*.03+i);X.fillStyle=ac;X.beginPath();X.moveTo(sx,0);X.lineTo(sx+26,0);X.lineTo(sx-30,108);X.lineTo(sx-56,108);X.fill()}
+  // glow behind the enemy side and the party side
+  for(let k=5;k>0;k--){X.globalAlpha=.022;ell(238,62,22*k,13*k,hot?'#ff4020':ac);ell(46,70,12*k,10*k,BT?ROLES[S.role].soul:'#fff')}
+  // floating motes / embers
+  for(let i=0;i<26;i++){const mx=(i*53.7+Math.sin(FR*.01+i)*14)%GW,my=108-((FR*(.18+i%5*.06)+i*31)%112);X.globalAlpha=.25+.25*Math.sin(FR*.07+i*2);R(mx,my,i%4?1:2,i%4?1:2,hot?(i%2?'#ff8040':'#ffe040'):ac)}
+  X.globalAlpha=.12;R(0,107,GW,1,ac);X.globalAlpha=1;X.globalCompositeOperation='source-over';
+}}
+{const _db2=drawBullets;drawBullets=function(){_db2();
+  X.save();X.globalCompositeOperation='lighter';
+  for(const b of BUL){if(b.line||b.rect||b.prompt||b.ghost)continue;if(b.warn&&b.t<b.warn)continue;const c=b.col==='b'?'#2060ff':b.col==='o'?'#ff8010':'#ffffff';X.globalAlpha=.05;ell(b.x,b.y,(b.r||3)+3,(b.r||3)+3,c);X.globalAlpha=.12;ell(b.x-b.vx*2.5,b.y-b.vy*2.5,1,1,c);ell(b.x-b.vx*5,b.y-b.vy*5,1,1,c)}
+  for(const b of BUL){if(!b.line||(b.warn&&b.t<b.warn))continue;X.globalAlpha=.14;X.strokeStyle=b.col==='v'?'#c060ff':b.col==='g'?'#40ff60':'#ffffff';X.lineWidth=b.lw+8;X.beginPath();X.moveTo(b.x,b.y);X.lineTo(b.x2,b.y2);X.stroke()}
+  if(!SOUL.dead&&S){const c=ROLES[S.role].soul;for(let k=3;k>0;k--){X.globalAlpha=.07;ell(SOUL.x,SOUL.y,5+k*4,5+k*4,c)}}
+  X.restore();X.globalAlpha=1;
+}}
+{const _d4=drawBattle;drawBattle=function(){
+  const L=BT.L,P=BT.P;
+  // spawn particles from fresh events
+  for(const f of L.fx){if(f.t!==1)continue;
+    if(f.k==='slash'){const[x,y]=enemyPos(f.tg);spark(x,y-40,16,'#ffe040',2.6);spark(x,y-40,8,'#ff4020',1.6)}
+    if(f.k==='dmg'&&f.c){const[x,y]=enemyPos(f.tg);spark(x,y-44,34,'#ffffff',3.6,36);L.fx.push({k:'ring',x,y:y-44,t:0,d:26})}
+    if(f.k==='mydmg'){spark(SOUL.x,SOUL.y,14,'#ff3030',2.2);L.hurtV=14}
+    if(f.k==='prompt'){spark(SOUL.x,SOUL.y,12,'#40ff80',2)}
+    if(f.k==='shatter'){spark(f.x,f.y,30,ROLES[S.role].soul,3,40)}
+    if(f.k==='phase'){const[x,y]=enemyPos(0);spark(x,y-50,60,'#ffffff',4.5,50);spark(x,y-50,40,'#ffe040',3,60)}
+  }
+  if(L.ph==='bullet'){if(L.gz==null)L.gz=SOUL.graze;if(SOUL.graze>L.gz){spark(SOUL.x,SOUL.y,4,'#ffffff',1.4,14);L.gz=SOUL.graze}}else L.gz=null;
+  if(L.hpPrev!=null&&S.hp>L.hpPrev&&L.ph!=='intro'){const i=P.mem.indexOf(NET.myPid()),pp=partyPos(Math.max(0,i),P.mem.length);spark(pp[0],pp[1]-30,18,'#60ff80',1.6,34)}L.hpPrev=S.hp;
+  if(P.p2&&FR%5===0&&L.ph!=='intro'){const[x,y]=enemyPos(0);PARTS.push({x:x-30+Math.random()*60,y:y-10,vx:(Math.random()-.5)*.4,vy:-.6-Math.random()*.6,l:40,m:40,c:Math.random()<.5?'#ff6020':'#ffe040',g:-.005})}
+  _d4();if(L.ph==='intro')return;gx();
+  drawParts();
+  for(const f of L.fx)if(f.k==='ring'){X.globalAlpha=1-f.t/f.d;X.strokeStyle='#fff';X.lineWidth=2;X.beginPath();X.arc(f.x,f.y,6+f.t*2.4,0,7);X.stroke();X.globalAlpha=1}
+  // box glow in the soul colour
+  if(!BX.broken){const c=ROLES[S.role].soul;X.globalCompositeOperation='lighter';for(let k=1;k<=3;k++){X.globalAlpha=.035;RO(Math.round(BX.x)-1-k*2,Math.round(BX.y)-1-k*2,Math.round(BX.w)+2+k*4,Math.round(BX.h)+2+k*4,L.ph==='bullet'?c:'#ffffff',2)}X.globalAlpha=1;X.globalCompositeOperation='source-over'}
+  // vignette + hurt flash
+  for(let k=0;k<4;k++){X.globalAlpha=.1;R(0,0,GW,6-k,'#000');R(0,GH-6+k,GW,6-k,'#000');R(0,0,10-k*2,GH,'#000');R(GW-10+k*2,0,10-k*2,GH,'#000')}X.globalAlpha=1;
+  if(L.hurtV>0){L.hurtV--;X.globalAlpha=L.hurtV/40;RO(0,0,GW,GH,'#ff0000',8);X.globalAlpha=1}
+}}
+
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
 const TI={sel:0,t:0,loading:true};
