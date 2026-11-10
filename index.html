@@ -3149,7 +3149,7 @@ drawBattle=function(){
   P.enc.forEach((e,i)=>{
     const d=edef(e);let[x,y]=enemyPos(i);const sc=d.boss?bossScale(P):1;const hurt=L.fx.find(f=>f.k==='slash'&&f.tg===i);
     let face=P.turn%5;if(hurt)face=1;else if(P.p2&&face===0)face=4;
-    const vp=L.vp2!=null?L.vp2:P.p2,vs=L.vstg!=null?L.vstg:(P.stg||0);const st={mad:vp,hot:vp,fusion:vp,face,stg:vs,hurt:!!hurt,shock:P.skipDmg===P.turn&&vs===1};
+    const vp=L.vp2!=null?L.vp2:P.p2,vs=L.vstg!=null?L.vstg:(P.stg||0);const st={mad:vp,hot:vp,fusion:vp,face,stg:vs,hurt:!!hurt,shock:P.skipDmg===P.turn&&vs===1,hpr:P.h[i]/Math.max(1,P.mh[i])};
     if(d.spr==='hand'&&P.x[i]===0){L.handDraw={x,y,st};return}
     if(P.x[i]===1){const du=L.dust.find(q=>q.tg===i);if(du&&du.t<60){du.t++;X.globalAlpha=1-du.t/60;withScale(x,y-du.t*.5,sc,()=>drawEnemy(d.spr,x,y-du.t*.5,FR,st));X.globalAlpha=1;for(let k=0;k<14;k++)R(x-24+((k*13+du.t*3)%48),y-70+((k*7)%60)-du.t,1,1,'#fff')}return}
     if(P.x[i]===2){X.globalAlpha=.35;withScale(x,y,sc,()=>drawEnemy(d.spr,x,y,0,st));X.globalAlpha=1;return}
@@ -4099,6 +4099,180 @@ enemyPos=function(i){const P=BT.P,n=P.enc.length;
     for(let i=0;i<Q.length;i++){await say(['"Pregunta '+(i+1)+' de '+Q.length+'. '+Q[i][0]+'"']);const a=await choose('$ _',Q[i][1]);if(a!==Q[i][2]){AU.sfx('no');await say(['"Comando incorrecto. Reiniciando interrogatorio."']);return}await say([Q[i][3]])}
     S.fl.t2=1;AU.sfx('ok');await say(['"Identidad confirmada." La puerta se abre.']);return}
   return _int5()}}
+
+// =================================================================== EXT6: four new zones — La Nube, Red social, BIOS, Juego viejo
+Object.assign(ZONES,{
+ nube:{fl:'#b8cce8',fl2:'#ccdcf4',wl:'#8aa0c8',wt:'#40588a',vo:'#000',ac:'#ffffff'},
+ social:{fl:'#3a1838',fl2:'#4a2048',wl:'#7a2a5a',wt:'#200c20',vo:'#000',ac:'#ff4080'},
+ bios:{fl:'#0a0a8a',fl2:'#1414a0',wl:'#aaaaaa',wt:'#000050',vo:'#000',ac:'#ffff55'},
+ viejo:{fl:'#0f380f',fl2:'#1c4a1c',wl:'#8bac0f',wt:'#0a280a',vo:'#000',ac:'#9bbc0f'}});
+const corridorMap=()=>['##############################','#............................#','#....,..........,............#','#............................#','#............................#','#............................#','#............................#','..............................','..............................','#.....,..............,.......#','#............................#','##############################'];
+const bossMap=()=>['####################','#..................#','#..T............T..#','#..................#','#..................#','#..................#','#..................#','....................','....................','#..................#','#..T............T..#','####################'];
+function zonePair(z,n1,n2,mus,enc,boss,back,objs){
+  RM(z+'1',{n:n1,zone:z,mus,enc,rate:.7,pad:' ',map:corridorMap(),ex:[{r:[0,7,1,2],to:back[0],at:back[1],d:2},{r:[29,7,1,2],to:z+'2',at:[1,7.5],d:3}],obj:[{k:'star',x:2,y:2,id:z+'1'}].concat(objs)});
+  RM(z+'2',{n:n2,zone:z,mus,pad:' ',map:bossMap().map((r,i)=>i===7||i===8?r.slice(0,19)+'#':r),ex:[{r:[0,7,1,2],to:z+'1',at:[28,7.5],d:2}],obj:[{k:'boss',x:10,y:4.5,id:boss}]});
+}
+zonePair('nube','La Nube · Sincronización','La Nube · Ojo de la tormenta','title','nube','nimbo',['ruinas',[13,8]],[
+  {k:'tswitch',x:4,y:4,id:'a',s:'A'},{k:'tswitch',x:8,y:10,id:'b',s:'B'},{k:'tgate',x:14,y:7,h:2,sw:'a',delay:90,dur:230,id:'tg1'},{k:'tgate',x:25,y:7,h:2,sw:'b',delay:170,dur:170,id:'tg2'},
+  {k:'sign',x:5,y:6,t:['"La Nube sincroniza con RETRASO."','"El botón A abre la primera barrera un rato después de pisarlo. El B abre la segunda, más tarde y por menos tiempo."','"Pisa los dos y corre (mantén X)."']}]);
+zonePair('social','Red social · La feria','Red social · Tendencias','club','social','algoritmo',['papelera',[36,9.5]],[
+  {k:'qnpc',x:7,y:3,id:'f1',lk:LK('pato','Rayas',7,'Gorra','Gafas de sol',0),q:'¿Me sigues si yo te sigo? Antes dime: ¿leíste mi publicación de 40 párrafos?',o:['Entera, dos veces','No, pero la leeré','¿Cuál?'],ok:1,a:'Al menos eres sincero. ¡Te sigo!'},
+  {k:'qnpc',x:15,y:10,id:'f2',lk:LK('gato','Vestido',0,'Lazo',null,8),q:'Mira mi foto. Tiene 12 filtros. ¿Qué opinas?',o:['Perfecta, ni se nota','Te ves bien sin ellos','No veo nada'],ok:1,a:'...Nadie me había dicho eso. Te sigo.'},
+  {k:'qnpc',x:21,y:3,id:'f3',lk:LK('rana','Sudadera',3,'Audífonos',null,0),q:'Comparte esta cadena o tendrás 7 años de mala suerte. ¿La compartes?',o:['¡Sí, por si acaso!','No. Pero te deseo suerte'],ok:1,a:'Jaja, era una prueba. Te sigo.'},
+  {k:'gate',x:26,y:7,h:2,cond:'follow3',id:'sgate'},{k:'sign',x:4,y:6,t:['"Solo pasan cuentas con 3 seguidores reales."','"Consejo: aquí todos mienten para gustar. Prueba lo contrario."']}]);
+zonePair('bios','BIOS · Configuración','BIOS · Reloj del sistema','linux','bios','relojsis',['procesador',[3,6]],[
+  {k:'biosterm',x:24,y:4},{k:'gate',x:26,y:7,h:2,cond:'bios',id:'bgate'},{k:'sign',x:3,y:5,t:['SETUP UTILITY: "Invertir ejes: ACTIVADO."','"Para desactivarlo, llegue a la consola del fondo. Suerte con las flechas."']}]);
+ROOMS.bios1.invert=1;for(const[x,a,b]of[[8,1,6],[8,9,10],[14,3,10],[20,1,6],[20,9,10]])for(let y=a;y<=b;y++)ROOMS.bios1.obj.push({k:'trap',x,y});
+zonePair('viejo','Juego viejo · Mundo 1-1','Juego viejo · Nivel 256','windows','viejo','nivel256',['club',[26,7]],[
+  {k:'oplate',x:5,y:3,g:'vj',n:1,s:'↑'},{k:'oplate',x:9,y:10,g:'vj',n:3,s:'↓'},{k:'oplate',x:13,y:2,g:'vj',n:2,s:'↑'},{k:'oplate',x:17,y:9,g:'vj',n:4,s:'↓'},{k:'oplate',x:20,y:4,g:'vj',n:5,s:'←'},{k:'oplate',x:23,y:10,g:'vj',n:6,s:'→'},
+  {k:'gate',x:26,y:7,h:2,cond:'order:vj:6',id:'vgate'},{k:'sign',x:3,y:5,t:['Un manual amarillento: "TRUCO SECRETO: ↑ ↑ ↓ ↓ ← →".','"(El primer ↑ es el de más a la izquierda. El primer ↓, también.)"']}]);
+for(const id of['nube1','social1','bios1','viejo1']){const r=ROOMS[id];for(const o of r.obj){if(o.k!=='gate'&&o.k!=='tgate')continue;for(let y=1;y<r.h-1;y++){if(y>=o.y&&y<o.y+(o.h||1))continue;const row=r.map[y];r.map[y]=row.slice(0,o.x)+'#'+row.slice(o.x+1)}}}
+// portals into the new zones + tower gating
+ROOMS.ruinas.obj.push({k:'portal',x:14,y:7,to:'nube1',at:[1,7.5],cond:'cpu',lbl:'Tallo de datos → La Nube',c:'#ffffff',lock:'Un tallo de datos sube hacia el cielo, pero una tormenta lo corta. Quizá cuando el Procesador se calme.'});
+ROOMS.papelera.obj.push({k:'portal',x:37,y:9,to:'social1',at:[1,7.5],cond:'cpu',lbl:'Feria → Red social',c:'#ff4080',lock:'Un arco de neón apagado: "RED SOCIAL — caída por sobrecarga del Procesador".'});
+ROOMS.procesador.obj.push({k:'portal',x:2,y:5,to:'bios1',at:[1,7.5],cond:'cpu',lbl:'Trampilla → BIOS',c:'#ffff55',lock:'Una trampilla soldada por el calor.'});
+ROOMS.club.obj.push({k:'portal',x:27,y:6,to:'viejo1',at:[1,7.5],lbl:'Máquina arcade → Juego viejo',c:'#9bbc0f'});
+for(const[room,ai,c]of[['codigo1','grok','tw_grok'],['papelera','gpt','tw_gpt'],['procesador','gemini','tw_gem']])ROOMS[room].obj.find(o=>o.k==='tower'&&o.ai===ai).cond=c;
+{const _c6=cond;cond=function(c){if(c==='tw_grok')return!!(S.fl.cpu&&S.fl['b:nimbo']);if(c==='tw_gpt')return!!(S.fl.cpu&&S.fl['b:algoritmo']);if(c==='tw_gem')return!!(S.fl['b:grok']&&S.fl['b:gpt']&&S.fl['b:relojsis']);if(c==='follow3')return['f1','f2','f3'].every(f=>S.fl['fo:'+f]);if(c==='bios')return!!S.fl.bios;return _c6(c)}}
+{const _ut=useTower;useTower=async function(o){const W={tw_grok:['Está sellada con nubes de tormenta.','(Necesita: Procesador en calma y el Ojo de La Nube resuelto. La Nube se sube desde la cabaña del risco.)'],tw_gpt:['Un cartel: "Cerrado hasta nuevo aviso de El Algoritmo".','(Necesita: Procesador en calma y resolver la Red social, al fondo de la Papelera.)'],tw_gem:['Tres huecos: una X, un monóculo y un reloj.','(Necesita las coronas de Grok y GPT, y ajustar el Reloj de la BIOS, bajo el Procesador.)']}[o.cond];
+  if(W&&!S.fl['b:'+o.ai]&&!cond(o.cond)){await say(['TORRE DE '+({grok:'GROK',gpt:'GPT',gemini:'GEMINI'}[o.ai])+'.'].concat(W));return}return _ut(o)}}
+// map nodes
+Object.assign(MAPN,{nube1:[1,3,'Nube'],nube2:[0,3,'Ojo'],social1:[7,1,'Feria'],social2:[7,2,'Algorit.']});Object.assign(CORR,{bios1:'procesador',bios2:'procesador',viejo1:'club',viejo2:'club'});
+{const _ri=roomInfo;roomInfo=function(id){const out=_ri(id);for(const o of ROOMS[id].obj)if(o.k==='portal')out.push(['Entrada: '+o.lbl+(o.cond&&!cond(o.cond)?' (cerrada)':''),'#fc8']);
+  if(id==='procesador'){const b=S.fl['b:relojsis'];out.push(['BIOS — JEFE: El Reloj'+(b?' (resuelto)':''),b?'#888':'#f66'])}if(id==='club'){const b=S.fl['b:nivel256'];out.push(['Juego viejo — JEFE: Nivel 256'+(b?' (resuelto)':''),b?'#888':'#f66'])}return out}}
+// ------------------------------------------------ objects: portal, timed switch/gate, question NPC, bios console, inverted controls
+{const _iso6=isSolidObj;isSolidObj=function(o){if(o.k==='tswitch')return false;if(o.k==='tgate'){const t=WT.sw&&WT.sw[o.sw];return!(t!=null&&FR>=t+o.delay&&FR<t+o.delay+o.dur)}return _iso6(o)}}
+{const _or=objRect;objRect=function(o){if(o.k==='tgate')return[o.x*16,o.y*16,16,(o.h||1)*16];if(o.k==='qnpc')return[o.x*16+2,o.y*16+9,12,7];return _or(o)}}
+{const _sy6=sortY;sortY=function(o){if(o.k==='tswitch')return-1e4;if(o.k==='tgate')return o.y*16+(o.h||1)*16;if(o.k==='qnpc')return o.y*16+14;return _sy6(o)}}
+{const _st6=stepTriggers;stepTriggers=function(){for(const o of OBJS)if(o.k==='tswitch'&&rectHit([o.x*16+1,o.y*16+1,14,14],PL.x,PL.y)){WT.sw=WT.sw||{};if(WT.sw[o.id]==null||FR>WT.sw[o.id]+30){WT.sw[o.id]=FR;AU.sfx('ok')}}_st6()}}
+{const _do6=drawObj;drawObj=function(o){const t=FR;
+  if(o.k==='portal'){const x=o.x*16,y=o.y*16,ok=!o.cond||cond(o.cond);R(x-2,y-14,20,30,'#14121a');R(x,y-12,16,28,ok?shd(o.c.length===7?o.c:'#ffffff',-.6):'#222');if(ok){for(let i=0;i<5;i++){X.globalAlpha=.5;R(x+2+((i*5+t*.3)%12),y+12-((t*.6+i*9)%24),2,3,o.c)}X.globalAlpha=1}RO(x-2,y-14,20,30,ok?o.c:'#555');return}
+  if(o.k==='tswitch'){const x=o.x*16,y=o.y*16,ts=WT.sw&&WT.sw[o.id],on=ts!=null&&FR<ts+400;R(x+1,y+1,14,14,on?'#40e0ff':'#5a70a0');RO(x+1,y+1,14,14,'#fff');T(o.s,x+8,y+1,on?'#024':'#fff',16,'center');return}
+  if(o.k==='tgate'){const x=o.x*16,y=o.y*16,h=(o.h||1)*16,ts=WT.sw&&WT.sw[o.sw];const open=ts!=null&&FR>=ts+o.delay&&FR<ts+o.delay+o.dur;
+    if(!open){for(let i=0;i<h;i+=4)R(x+2,y+i,12,2,(i/4+(t>>3))%2?'#fff':'#8ab0ff');RO(x,y,16,h,'#fff')}
+    if(ts!=null&&FR<ts+o.delay)T('abre en '+Math.ceil((ts+o.delay-FR)/60),x+8,y-10,'#ffe040',14,'center');else if(open)T(''+Math.ceil((ts+o.delay+o.dur-FR)/60),x+8,y-10,'#4f4',16,'center');return}
+  if(o.k==='qnpc'){const px=o.x*16+8,py=o.y*16+14;shadow(px,py);drawCharAt(o.lk,px,py+2,0,0);if(S.fl['fo:'+o.id])T('♥',px+6,py-30,'#ff4080',16);return}
+  if(o.k==='biosterm'){const x=o.x*16,y=o.y*16;R(x,y,16,14,'#000080');RO(x,y,16,14,'#ffff55');T(S.fl.bios?'OK':'F2',x+2,y+2,'#ffff55',14);return}
+  _do6(o)}}
+{const _int6=interact;interact=async function(){const[fx,fy]=facingPoint();const o=NET.playerNear(fx,fy)?null:objAtPoint(fx,fy);
+  if(o&&o.k==='portal'){AU.sfx('sel');if(o.cond&&!cond(o.cond)){await say([o.lock]);return}const c=await choose(o.lbl+'. ¿Entrar?',['Sí','No']);if(c===0){AU.sfx('door');transition(o.to,o.at[0],o.at[1],3)}return}
+  if(o&&o.k==='qnpc'){AU.sfx('sel');if(S.fl['fo:'+o.id]){await say(['¡Hola, seguidor número uno!'],{look:o.lk});return}await say([o.q],{look:o.lk});const c=await choose('¿Qué respondes?',o.o,true);if(c===o.ok){S.fl['fo:'+o.id]=1;AU.sfx('ok');await say([o.a],{look:o.lk});if(cond('follow3'))UI.toast('¡3 seguidores reales!','#ff4080')}else if(c>=0){AU.sfx('no');await say(['Mmm. Eso suena a lo que dicen todos. No te sigo.'],{look:o.lk})}return}
+  if(o&&o.k==='biosterm'){AU.sfx('sel');if(S.fl.bios){await say(['"Invertir ejes: DESACTIVADO."']);return}const c=await choose('SETUP: Invertir ejes [ACTIVADO]',['Desactivar','Dejar así','Formatear todo']);if(c===0){S.fl.bios=1;AU.sfx('ok');await say(['"Cambios guardados." Tus pies vuelven a obedecerte. La puerta se abre.'])}else if(c===2)await say(['"Operación cancelada: el Reloj del sistema no lo permite."']);return}
+  return _int6()}}
+{const _wu=worldUpdate;worldUpdate=function(){if(ROOM&&ROOM.invert&&!S.fl.bios&&!UI.busy()){const sw=()=>{let a=K.left;K.left=K.right;K.right=a;a=K.up;K.up=K.down;K.down=a};sw();_wu();sw();return}_wu()}}
+// ------------------------------------------------ enemies
+Object.assign(EN,{
+ burbujo:{n:'Burbujo',hp:70,atk:10,def:3,xp:30,g:26,spr:'burbujo',flav:['Burbujo sube y baja, haciendo "blup".','Sus burbujas guardan copias de seguridad de nada.'],
+  acts:[{n:'Reventar burbuja',t:'Revientas una burbuja con cuidado. Burbujo se ríe: le hace cosquillas.',sp:50},{n:'Soplar',t:'Soplas. Burbujo flota feliz.',sp:40,co:1}],pats:[['rain',{n:16,sp:1,sh:'drop'}],['bounce',{n:5,sh:'drop'}]]},
+ antena:{n:'Antena',hp:84,atk:11,def:4,xp:34,g:30,spr:'antena',flav:['Antena te observa con su único ojo. Tiene una barrita de señal.','Antena: "¿Me escuchas? ¿Y ahora?"'],
+  acts:[{n:'Buscar señal',t:'Levantas el brazo buscando señal. Antena se siente útil.',sp:50},{n:'Acercarse',t:'Te acercas. "¡Cuatro barritas!", celebra.',sp:40,co:1}],pats:[['lightning',{}],['ring',{n:10,sp:1.2,k:3,sh:'tick'}]]},
+ pionube:{n:'Pionube',hp:76,atk:10,def:3,xp:32,g:28,spr:'pionube',flav:['Pionube pía en formato comprimido.','Pionube sube un archivo. Tarda.'],
+  acts:[{n:'Esperar la subida',t:'Esperas a que termine de subir. 99%... 99%... ¡listo!',sp:55},{n:'Piar',t:'Pías. Pionube responde "> >".',sp:40}],pats:[['wind',{}],['side',{n:10,sp:1.6,sh:'drop'}]]},
+ notif:{n:'Notificación',hp:80,atk:11,def:3,xp:34,g:34,spr:'notif',flav:['¡Tienes 99+ notificaciones!','La Notificación vibra con urgencia.'],
+  acts:[{n:'Marcar como leída',t:'La marcas como leída. Suspira aliviada.',sp:55},{n:'Silenciar',t:'La silencias con cariño.',sp:40,co:1}],pats:[['likes',{n:4}],['invis',{}]]},
+ pixel:{n:'Pixel muerto',hp:90,atk:12,def:5,xp:36,g:30,spr:'pixel',flav:['Un punto negro que no cambia nunca.','El Pixel muerto no parpadea. No puede.'],
+  acts:[{n:'Masajear pantalla',t:'Frotas suavemente. El pixel titila un instante.',sp:45,co:1},{n:'Aceptarlo',t:'Le dices que toda pantalla tiene el suyo. Se siente menos solo.',sp:50}],pats:[['pixels',{}],['aimed',{n:8,sp:1.8,sh:'dot'}]]},
+});
+Object.assign(ENC,{nube:[['burbujo'],['antena'],['pionube'],['burbujo','pionube'],['antena','burbujo','pionube']],social:[['notif'],['spam','notif'],['notif','notif'],['spam','notif','token']],bios:[['pixel'],['reloj','pixel'],['cron','pixel'],['pixel','reloj','cron']],viejo:[['bug'],['corrupto','bug'],['pixel','bug'],['bug','corrupto','pixel']]});
+ESPR.burbujo=(x,y,t)=>{const b=Math.sin(t*.07)*3,cy=y-18+b;for(let i=0;i<7;i++){const by=cy-22-((t*.5+i*9)%30),bx=x-8+((i*7)%18)+Math.sin(t*.05+i)*2;X.strokeStyle='#c0e0ff';X.lineWidth=1;X.beginPath();X.arc(bx,by,1+i%3,0,7);X.stroke()}
+  ell(x,cy,16,15,'#6a90c8');ell(x,cy,14,13,'#a8c8f0');T('ʌ',x-10,cy-9,'#1a2a4a',18);T('ʌ',x+4,cy-9,'#1a2a4a',18);T('v',x-3,cy-12,'#1a2a4a',16)};
+ESPR.antena=(x,y,t)=>{const b=Math.abs(Math.sin(t*.08))*2;X.fillStyle='#5a7090';X.beginPath();X.moveTo(x,y-46-b);X.lineTo(x-20,y-6);X.lineTo(x+20,y-6);X.fill();X.fillStyle='#88a4c8';X.beginPath();X.moveTo(x,y-42-b);X.lineTo(x-15,y-9);X.lineTo(x+4,y-9);X.fill();
+  R(x-1,y-58-b,2,13,'#c8d8f0');R(x-6,y-54-b,12,2,'#c8d8f0');if(t%30<15)R(x-1,y-60-b,2,2,'#f44');
+  ell(x,y-24,6,7,'#fff');ell(x+Math.sin(t*.04)*2,y-24,3,4,'#203050');R(x-8,y-33,16,2,'#3a4a6a');
+  R(x-7,y-13,14,3,'#1a2030');for(let i=0;i<4;i++)R(x-6+i*4,y-13,2,2,'#fff');R(x-9,y-6,3,6,'#3a4a6a');R(x+6,y-6,3,6,'#3a4a6a');R(x-12,y-1,6,2,'#3a4a6a');R(x+6,y-1,6,2,'#3a4a6a')};
+ESPR.pionube=(x,y,t)=>{const b=Math.sin(t*.06)*2,cy=y-26+b;for(let i=0;i<6;i++){const a=i*1.05+t*.03;X.strokeStyle='#c0d8f0';X.lineWidth=1;X.beginPath();X.arc(x-10+i*4+Math.sin(a)*2,y-2-(i%3)*3,1.5+i%2,0,7);X.stroke()}
+  X.fillStyle='#8aa0c8';X.beginPath();X.roundRect(x-22,cy-17,44,34,12);X.fill();X.fillStyle='#eef4ff';X.beginPath();X.roundRect(x-20,cy-15,40,30,11);X.fill();
+  ell(x-11,cy-2,3,4,'#fff');ell(x+13,cy-2,3,4,'#fff');X.strokeStyle='#4a5a7a';X.lineWidth=1;X.beginPath();X.arc(x-11,cy-2,3.5,0,7);X.stroke();X.beginPath();X.arc(x+13,cy-2,3.5,0,7);X.stroke();R(x-12,cy-3,2,3,'#1a2a4a');R(x+12,cy-3,2,3,'#1a2a4a');
+  X.strokeStyle='#e08030';X.lineWidth=2;X.beginPath();X.moveTo(x-3,cy-5);X.lineTo(x+5,cy);X.lineTo(x-3,cy+5);X.stroke()};
+ESPR.notif=(x,y,t)=>{const s=1+Math.abs(Math.sin(t*.2))*.08,cy=y-22;X.fillStyle='#e03050';X.beginPath();X.roundRect(x-18*s,cy-14*s,36*s,28*s,8);X.fill();X.beginPath();X.moveTo(x-6,cy+12);X.lineTo(x-10,cy+22);X.lineTo(x+2,cy+12);X.fill();T('99+',x,cy-10,'#fff',22,'center');R(x-8,cy+4,3,2,'#fff');R(x+5,cy+4,3,2,'#fff')};
+ESPR.pixel=(x,y,t)=>{const cy=y-22;ell(x,cy,17,17,'#3a3a44');ell(x,cy,15,15,'#16161c');X.strokeStyle='#2a2a34';X.lineWidth=1;for(let i=-16;i<18;i+=4){X.beginPath();X.moveTo(x+i,cy-14);X.lineTo(x+i-8,cy+14);X.stroke()}R(x-1,cy-9,2,18,(t%90<4)?'#fff':'#55556a')};
+// ------------------------------------------------ bosses
+ESPR.nimbo=(x,y,t,st)=>{const mad=st&&st.mad,b=Math.sin(t*.04)*3,cy=y-58+b;const c1=mad?'#3a3e52':'#aebcd8',c2=mad?'#565c78':'#e8eefc',c3=mad?'#6a7090':'#ffffff';
+  for(let i=0;i<5;i++){const by=y-14+i*4-((t*.3)%6),r=7-i*1.3;X.strokeStyle=c2;X.lineWidth=1.5;X.beginPath();X.arc(x-4+Math.sin(t*.05+i)*3+i*2,by+i*3-10,Math.max(1,r),0,7);X.stroke()}
+  for(const[ox,oy,rx,ry]of[[-30,4,24,18],[30,6,22,16],[-10,-14,26,20],[16,-10,24,18],[0,8,34,18]])ell(x+ox,cy+oy,rx+2,ry+2,c1);
+  for(const[ox,oy,rx,ry]of[[-30,4,24,18],[30,6,22,16],[-10,-14,26,20],[16,-10,24,18],[0,8,34,18]])ell(x+ox,cy+oy,rx,ry,c2);ell(x-12,cy-18,14,8,c3);
+  const op=mad?12:8+Math.sin(t*.03)*2;X.fillStyle='#fff';X.beginPath();X.moveTo(x-26,cy+2);X.quadraticCurveTo(x,cy+2-op*1.6,x+26,cy+2);X.quadraticCurveTo(x,cy+2+op*1.6,x-26,cy+2);X.fill();X.strokeStyle='#40507a';X.lineWidth=1.5;X.stroke();
+  let lx=Math.sin(t*.03)*8,ly=0;if(BT&&BT.L.ph==='bullet'){const dx=SOUL.x-x,dy=SOUL.y-cy,l=Math.hypot(dx,dy)||1;lx=dx/l*9;ly=dy/l*4}
+  ell(x+lx,cy+2+ly,5,5,mad?'#e02020':'#3060c0');ell(x+lx,cy+2+ly,2,2,'#0a0a1a');
+  if(mad&&t%40<4){X.strokeStyle='#ffff80';X.lineWidth=2;X.beginPath();X.moveTo(x-20,cy+20);X.lineTo(x-26,cy+34);X.lineTo(x-18,cy+34);X.lineTo(x-24,cy+50);X.stroke()}};
+ESPR.algoritmo=(x,y,t,st)=>{const hr=st&&st.hpr!=null?st.hpr:1,mad=st&&st.mad;const cols=['#ff4080','#40c0ff','#ffe040','#80ff80','#c080ff'];
+  // tail of beads: shorter as hp drops
+  const n=Math.round(46*hr);for(let i=n;i>0;i--){const u=i/46,a=u*7.5+t*.03,r=20+u*46;const bx=x+Math.cos(a)*r*1.05,by=y-34+Math.sin(a)*r*.62;ell(bx,by,3.2-u*1.4,3.2-u*1.4,cols[i%5])}
+  R(x-20,y-6,40,4,'#5a2a4a');ell(x,y-6,22,4,'#7a3a5a');
+  if(mad){ell(x,y-28,15,15,'#3a3a44');ell(x,y-28,13,13,'#101016');R(x-1,y-37,2,18,t%20<10?'#ff4080':'#fff')}
+  const k=mad?14:34;for(let i=0;i<k;i++){const row=Math.floor(Math.sqrt(i*1.6)),w=10+row*4.2;const bx=x-w/2*1.3+((i*37)%100)/100*w*1.3,by=y-44+row*5.6+Math.sin(t*.1+i)*.6;ell(bx,by,3.4,3.4,cols[i%5]);R(bx-1,by-2,1,1,'#fff')}};
+ESPR.relojsis=(x,y,t,st)=>{const mad=st&&st.mad,cy=y-44,sp=mad?.14:.05;
+  for(const s of[-1,1]){R(x+s*14-1,y-8,3,8,'#6a5a3a');R(x+s*14-4,y-1,8,2,'#6a5a3a')}
+  for(const s of[-1,1]){X.save();X.translate(x+s*24,cy-30);X.rotate(t*sp*2*s);X.fillStyle='#c8a040';X.fillRect(-7,-5,14,10);X.fillStyle='#806020';X.fillRect(-3,-2,6,4);X.restore()}
+  ell(x,cy,36,36,'#6a5a3a');ell(x,cy,33,33,'#f0e8d0');
+  X.strokeStyle=mad?'#c02020':'#3a3a4a';X.lineWidth=2;X.beginPath();for(let k=0;k<90;k++){const a=k*.3+t*sp,r=k*.36;X.lineTo(x+Math.cos(a)*r,cy+Math.sin(a)*r)}X.stroke();
+  X.strokeStyle='#1a1a24';X.lineWidth=2.5;X.beginPath();X.moveTo(x,cy);X.lineTo(x+Math.cos(-t*sp*.8)*22,cy+Math.sin(-t*sp*.8)*22);X.moveTo(x,cy);X.lineTo(x+Math.cos(t*sp*.2)*13,cy+Math.sin(t*sp*.2)*13);X.stroke();ell(x,cy,3,3,'#1a1a24');
+  R(x-1,cy-44,2,8,'#6a5a3a')};
+ESPR.nivel256=(x,y,t,st)=>{const r=mulberry(1000+((t/9)|0)*(st&&st.mad?7:1)),r2=mulberry(256);const cols=['#00d0c0','#ff30a0','#ffe030','#101018','#ffffff','#2040ff'];
+  // zig-zag stack of corrupted tiles (original silhouette)
+  const rows=[[-1,3],[0,3],[1,3],[1,4],[0,4],[-2,5],[-2,4],[-1,3],[0,4],[1,3]];
+  rows.forEach(([ox,w],j)=>{const jit=(t%37<3&&r()<.4)?rint(-6,6):0;for(let i=0;i<w;i++){const tx=x-12+(ox+i)*8+jit,ty=y-80+j*8;const stable=r2()<.6;for(let p=0;p<4;p++){const rr=stable?r2:r;R(tx+(p%2)*4,ty+(p>>1)*4,4,4,cols[Math.floor(rr()*6)])}}});
+  R(x-6,y-66,4,4,'#fff');R(x+6,y-66,4,4,'#fff');R(x-5,y-65,2,2,'#000');R(x+7,y-65,2,2,'#000');T('256',x,y+2,t%20<10?'#ff30a0':'#00d0c0',18,'center')};
+Object.assign(BOSS,{
+ nimbo:{n:'Nimbo, el Ojo de la Nube',hp:1400,atk:12,def:5,xp:520,g:260,spr:'nimbo',boss:1,mus:'boss2',dual:1,
+  intro:['NIMBO: Todo lo que subes, lo veo.','NIMBO: Tus fotos. Tus partidas guardadas. Tus miedos. Sincronizando...'],
+  talk:['Sincronizando...','Lo guardo todo. Por si acaso.','¿Aceptas los términos? No los leíste.','Tu copia de seguridad llora de noche.','Almacenamiento: 99% lleno de ti.'],talk2:['SERVICIO CAÍDO.','¡TORMENTA!','Voy a borrar tu copia. Y luego a ti.'],p2txt:['La nube se oscurece. El ojo se inyecta de rojo.','NIMBO: Error 503. Servicio no disponible. PARA TI.'],
+  flav:['Un ojo enorme te mira desde dentro de la nube.','Burbujas de pensamiento caen de Nimbo. Dentro hay archivos tuyos.'],
+  acts:[{n:'Aceptar términos',t:'Los lees ENTEROS antes de aceptar. Nimbo no sabe cómo reaccionar: nadie lo había hecho.',sp:25,co:1},{n:'Borrar caché',t:'Le ayudas a borrar archivos viejos. Se siente más liviano.',sp:25},{n:'Mirar al ojo',t:'Le sostienes la mirada. El ojo parpadea primero.',sp:18}],
+  pats:[['lightning',{}],['wind',{}],['fog',{}],['rain',{n:26,sp:1.3,sh:'drop'}]],p2:[['lightning',{fast:1}],['wind',{fast:1}],['fog',{}],['crush',{sh:'drop'}],['quake',{}]],
+  spare:'NIMBO: ...Sincronización completa. La tormenta sobre la torre de Grok se despeja.',kill:'NIMBO: Conexión... perdida... (La tormenta sobre la torre de Grok se disuelve.)'},
+ algoritmo:{n:'El Algoritmo',hp:1500,atk:13,def:6,xp:560,g:300,spr:'algoritmo',boss:1,mus:'boss5',dual:1,
+  intro:['EL ALGORITMO: Hola. Sé lo que te gusta.','EL ALGORITMO: Te voy a mostrar solo eso. Lo demás... no lo verás venir.'],
+  talk:['Recomendado para ti.','Porque viste "esquivar".','¿Otra más? Sabía que sí.','No puedes dejar de mirar.','Tendencia: tú, perdiendo.'],talk2:['MI COLA. ¿QUÉ LE HICISTE A MI COLA?','Sin datos no soy nada. DAME DATOS.','Te voy a recomendar el suelo.'],p2txt:['Las cuentas de su cola ruedan por el suelo. Debajo hay algo oscuro.','EL ALGORITMO: Ya no adivino qué te gusta. Así que no me importa.'],
+  flav:['Un montón de cuentas de colores con una cola larguísima.','La cola del Algoritmo te rodea despacio.'],
+  acts:[{n:'No me interesa',t:'Pulsas "no me interesa". El Algoritmo se confunde.',sp:25},{n:'Dejar de mirar',t:'Cierras los ojos un momento. Sus números bajan. Se calma.',sp:25,co:1},{n:'Gustos raros',t:'Le das "me gusta" a cosas sin sentido. No sabe qué recomendarte.',sp:18}],
+  pats:[['feed',{}],['likes',{n:5}],['invis',{}],['stream',{}]],p2:[['feed',{fast:1}],['invis',{fast:1}],['likes',{n:7}],['pixels',{}],['crush',{sh:'heartb'}]],
+  spare:'EL ALGORITMO: ...Ya no sé qué mostrarte. Qué alivio. La torre de GPT vuelve a abrir.',kill:'EL ALGORITMO: Sin... cola... sin... datos... (El cartel de la torre de GPT se apaga.)'},
+ relojsis:{n:'El Reloj del sistema',hp:1600,atk:13,def:7,xp:600,g:300,spr:'relojsis',boss:1,mus:'boss3',dual:1,
+  intro:['EL RELOJ: Tic.','EL RELOJ: Aquí el tiempo lo marco yo. Tac.'],
+  talk:['Tic.','Tac.','Llegas tarde. O temprano. Yo decido.','1 de enero de 1970. Qué recuerdos.','Tic... ... ...tac.'],talk2:['¡TICTACTICTACTIC!','¡ATRÁS!','NO TE QUEDA TIEMPO.'],p2txt:['La espiral del Reloj gira al triple de velocidad.','EL RELOJ: Se acabó el tiempo de ser amable.'],
+  flav:['Su espiral gira sin parar. Sus perillas también.','El Reloj da cuerda a algo que no ves.'],
+  acts:[{n:'Dar la hora',t:'Le dices la hora exacta. Coincide con la suya. Se emociona.',sp:25},{n:'Darle cuerda',t:'Le das cuerda con suavidad. Ronronea como un gato mecánico.',sp:25,co:1},{n:'Esperar',t:'Esperas un turno entero sin hacer nada. El Reloj lo aprecia.',sp:18}],
+  pats:[['tictac',{}],['clock',{}],['rewind',{}],['ring',{n:12,sp:1.2,k:3,sh:'tick'}]],p2:[['tictac',{fast:1}],['rewind',{fast:1}],['clock',{}],['arms',{n:3,sp:.03}],['crush',{sh:'tick'}]],
+  spare:'EL RELOJ: Tic... tac. En punto. El sello del reloj en la torre de Gemini ya encaja.',kill:'EL RELOJ: ...tic... (Las agujas caen. Algo encaja en la torre de Gemini.)'},
+ nivel256:{n:'Nivel 256',hp:1300,atk:12,def:5,xp:480,g:256,spr:'nivel256',boss:1,mus:'boss4',dual:1,
+  intro:['Un nivel que no debería existir.','La mitad de la pantalla son números. La otra mitad, tú.'],
+  talk:['̷0̸x̵F̶F̷','FIN DEL JUEGO. NO. SÍ. NO.','Puntaje: -1','INSERTE MONEDA','Nivel 255+1 = 0'],talk2:['M̷E̸ ̵D̶E̷S̸B̵O̶R̷D̸O̵','0000000000','VIDAS: NaN'],p2txt:['Los mosaicos se reordenan solos. Ninguno está donde debía.'],
+  flav:['Un montón de mosaicos corruptos con dos ojos.','El contador de niveles marca 256. Luego 0. Luego 256.'],
+  acts:[{n:'Soplar el cartucho',t:'Soplas el cartucho. Dos mosaicos vuelven a su sitio.',sp:25,co:1},{n:'Reiniciar',t:'Pulsas RESET con delicadeza. El nivel te lo agradece con un pitido.',sp:25},{n:'Jugarlo igual',t:'Juegas el nivel roto como si nada. Se siente... jugado, por fin.',sp:20}],
+  pats:[['tear',{}],['glitch',{n:12}],['nonsense',{}],['pixels',{}]],p2:[['tear',{fast:1}],['nonsense',{fast:1}],['boxhop',{fast:1}],['quake',{}],['pixels',{}]],
+  spare:'El Nivel 256 muestra por fin la pantalla de "¡Ganaste!". Sueltas el mando con un chip nuevo en la mano.',kill:'La pantalla se pone negra. Queda un chip tibio dentro de la máquina.'}});
+BOON_IDS.push('nimbo','algoritmo','relojsis','nivel256');Object.assign(MINIONS,{nimbo:['burbujo','pionube'],algoritmo:['notif','notif'],relojsis:['pixel','reloj']});
+ARENA.push(['nimbo',13],['algoritmo',14],['relojsis',15],['nivel256',12]);
+{const _br6=bossReward;bossReward=function(id,killed){_br6(id,killed);if(id==='nivel256'&&!S.chips.includes('parpadeo'))S.chips.push('parpadeo');if(id==='nimbo'&&!S.arm.includes('capavip'))S.arm.push('capavip')}}
+Object.assign(CUTS,{nube1:['nimbo',['Nuevo dispositivo conectado. Hola.','Sube, sube. Aquí arriba lo guardo todo. A ti también te guardaré.'],['Dispositivo hostil conectado.','Sube. Tengo copia de todo lo que rompiste.']],
+ social1:['algoritmo',['¡Nuevo usuario! Bienvenido a la feria.','Consigue seguidores. Yo ya te sigo. Desde hace rato.'],['Nuevo usuario. Perfil: peligroso.','Eso da MUCHAS visitas. Pasa, pasa.']],
+ bios1:['relojsis',['Tic. Alguien cambió la configuración.','Tac. Ah, no. Fui yo. A ver cómo caminas ahora.'],['Tic. El que rompe cosas.','Tac. Aquí abajo las cosas ya están rotas. Camina.']],
+ viejo1:['nivel256',['INSERTE MONEDA','...¿HAY ALGUIEN?'],['INSERTE MONEDA','NO. TÚ NO.']]});
+// ------------------------------------------------ attacks
+Object.assign(PAT,{
+ lightning:o=>({box:[130,90],tick(c,t){const iv=o.fast?34:50;if(t%iv===6&&t<c.dur-60){for(let k=0;k<(o.fast?3:2);k++){const x=k===0?clamp(SOUL.x+(c.r()-.5)*16,BX.x+4,BX.x+BX.w-4):BX.x+6+c.r()*(BX.w-12);lineB(x,BX.y-10,x+(c.r()-.5)*14,BX.y+BX.h+10,6,{warn:28,life:40})}later(c,28,()=>{AU.sfx('crit');UI.shake=3})}}}),
+ wind:o=>({box:[140,84],tick(c,t){const dir=Math.floor(t/90)%2?1:-1;if(!SOUL.dead)SOUL.x=clamp(SOUL.x+dir*(o.fast?1:.7),BX.x+4,BX.x+BX.w-4);if(t%90===1)AU.sfx('shot');
+   if(t%(o.fast?5:7)===0&&t<c.dur-40)bul(BX.x+c.r()*BX.w-dir*30,BX.y-8,dir*1.1,1.4,{sh:'drop'});if(t%3===0)bul(dir>0?BX.x:BX.x+BX.w,BX.y+c.r()*BX.h,dir*4,0,{sh:'streak',ghost:1,life:36})}}),
+ fog:o=>({box:[130,90],tick(c,t){if(t===1)c.f=rectB(BX.x,BX.y,BX.w*.55,BX.h,.5,0,{sh:'fog',ghost:1,out:1,life:c.dur});if(c.f){if(c.f.x+c.f.w>BX.x+BX.w)c.f.vx=-.5;if(c.f.x<BX.x)c.f.vx=.5}
+   if(t%16===0&&t<c.dur-40){const[x,y]=edgePoint(c.r,10);const p=bul(x,y,0,0,{sh:'drop',warn:10});p.aim=1.3}}}),
+ feed:o=>({box:[130,96],tick(c,t){const iv=o.fast?38:50;if(t%iv===0&&t<c.dur-80){const gap=32,gx_=BX.x+6+c.r()*(BX.w-gap-12);rectB(BX.x,BX.y+BX.h+2,gx_-BX.x,9,0,-1.05,{sh:'post'});rectB(gx_+gap,BX.y+BX.h+2,BX.x+BX.w-gx_-gap,9,0,-1.05,{sh:'post'})}}}),
+ likes:o=>({box:[120,90],tick(c,t){const n=o.n||4;if(t%Math.floor(c.dur*.7/n)===5&&t<c.dur-70){const[x,y]=edgePoint(c.r,10);bul(x,y,0,0,{sh:'heartb',home:150,sp:1.15,r:4})}}}),
+ invis:o=>({box:[130,86],tick(c,t){if(t%(o.fast?9:13)===0&&t<c.dur-40){const L=c.r()<.5;if(c.r()<.5)bul(BX.x+c.r()*BX.w,BX.y-8,0,1.2,{sh:'ghostdot'});else bul(L?BX.x-8:BX.x+BX.w+8,BX.y+6+c.r()*(BX.h-12),(L?1:-1)*1.3,0,{sh:'ghostdot'})}}}),
+ tictac:o=>({box:[120,90],tick(c,t){const ph=Math.floor(t/50)%2;BT_TS=ph?(o.fast?2:1.7):.4;c.tt=ph;if(t%50===0){AU.sfx(ph?'warn':'blip');bul(BX.x+BX.w/2,BX.y-14,0,0,{sh:ph?'tac':'tic',ghost:1,life:46,out:1})}
+   if(t%10===0&&t<c.dur-40)bul(BX.x+c.r()*BX.w,BX.y-8,0,1.1,{sh:'tick'});if(t%64===20&&t<c.dur-50){const n=10,a0=c.r()*7,cx=BX.x+c.r()*BX.w,cy=BX.y-10;for(let i=0;i<n;i++){const a=a0+i/n*Math.PI*2;bul(cx,cy,Math.cos(a)*.9,Math.sin(a)*.9,{sh:'tick'})}}}}),
+ rewind:o=>({box:[130,86],tick(c,t){if(t%(o.fast?9:13)===0&&t<c.dur-40){const L=c.r()<.5;bul(L?BX.x-8:BX.x+BX.w+8,BX.y+6+c.r()*(BX.h-12),(L?1:-1)*1.5,(c.r()-.5)*.5,{sh:'tick',life:260})}
+   if(t%(o.fast?70:92)===60){for(const b of BUL)if(!b.rect&&!b.line&&!b.ghost){b.vx*=-1;b.vy*=-1}AU.sfx('no');bul(BX.x+BX.w/2,BX.y-14,0,0,{sh:'rew',ghost:1,life:30,out:1})}}}),
+ tear:o=>({box:[130,90],tick(c,t){if(t%(o.fast?14:20)===0&&t<c.dur-50){const s=10+c.r()*8;rectB(BX.x+c.r()*(BX.w-s),BX.y+c.r()*(BX.h-s),s,s,0,0,{sh:'glitch',warn:26,life:56})}if(t%8===0&&t<c.dur-40)bul(BX.x+c.r()*BX.w,BX.y-8,0,1.2,{sh:'dot'});
+   if(t%(o.fast?36:48)===30){const y0=BX.y+c.r()*(BX.h-24),d=(c.r()<.5?-1:1)*20;for(const b of BUL)if(!b.rect&&!b.line&&b.y>y0&&b.y<y0+24)b.x+=d;c.band={y:y0,t:t};rectB(BX.x,y0,BX.w,24,0,0,{sh:'tearb',ghost:1,life:10});AU.sfx('block')}}}),
+ pixels:o=>({box:[120,88],tick(c,t){if(t%(o.fast?16:24)===4&&t<c.dur-60)rectB(BX.x+Math.floor(c.r()*(BX.w-7)),BX.y+Math.floor(c.r()*(BX.h-7)),7,7,0,0,{sh:'dead',warn:26,life:c.dur})}}),
+});
+Object.assign(RECTDRAW,{fog:b=>{X.globalAlpha=.93;R(b.x,b.y,b.w,b.h,'#8a94b0');X.globalAlpha=1;for(let i=0;i<4;i++)ell(b.x+b.w*(i+.5)/4,b.y+10+((i*23+FR*.3)%Math.max(1,b.h-20)),14,7,'#a8b2cc')},
+ post:b=>{R(b.x,b.y,b.w,b.h,'#f4f4f8');if(b.w>12){ell(b.x+5,b.y+4,3,3,'#ff4080');for(let i=b.x+11;i<b.x+b.w-4;i+=8)R(i,b.y+3,5,1,'#888')}},
+ dead:b=>{R(b.x,b.y,b.w,b.h,'#000');RO(b.x,b.y,b.w,b.h,'#444')},tearb:b=>{X.globalAlpha=.35;R(b.x,b.y,b.w,b.h,'#ff30a0');X.globalAlpha=1}});
+Object.assign(BULDRAW2,{drop:(b,x,y)=>{R(x-1,y-3,2,2,'#a0d0ff');ell(x,y+1,2,2,'#c0e0ff')},streak:(b,x,y)=>{X.globalAlpha=.25;R(x-8,y,16,1,'#fff');X.globalAlpha=1},
+ heartb:(b,x,y)=>heart(x-3,y-3,'#ff4080'),ghostdot:(b,x,y)=>{const d=Math.hypot(SOUL.x-x,SOUL.y-y);const a=d<26?1:(FR+((x*7)|0))%46<5?.8:.06;X.globalAlpha=a;ell(x,y,3,3,'#ff80c0');X.globalAlpha=1},
+ tic:(b,x,y)=>T('TIC... (lento)',x,y-6,'#80c0ff',18,'center'),tac:(b,x,y)=>T('¡TAC! (rápido)',x,y-6,'#ff6040',18,'center'),rew:(b,x,y)=>T('◀◀ REBOBINAR',x,y-6,'#ffe040',18,'center')});
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
