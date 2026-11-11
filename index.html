@@ -4646,7 +4646,7 @@ function gfxWorld2(cx,cy){const Z=ZONES[ROOM.zone]||{},c=Z.fl2&&Z.fl2.length===7
     else if(ch===','&&ROOM.zone==='bosque'){const h=tx*5+ty*11,s=Math.round(Math.sin(FR*.05+h));if(s){X.globalAlpha=.8;R(tx*16+5+(h%3)*2+s-cx,ty*16+5-cy,1,1,shd(Z.fl,.45))}}}
   X.globalAlpha=1}
 // ------------------------------------------------ tiles: redrawn floors, walls and nature for every base zone
-function tiles8(g,r){const Z=Object.assign({},ZONES[r.zone]);if(r.tc){Z.ac=r.tc;Z.wl=shd(r.tc,-.55);Z.wt=shd(r.tc,-.8)}const zn=r.zone,rr=mulberry(hash(r.id)+88),fl=Z.fl,fl2=Z.fl2,wl=Z.wl,wt=Z.wt,ac=Z.ac;
+function tiles8(g,r){const Z=Object.assign({},ZONES[r.zone]);if(r.tc){Z.ac=r.tc;Z.wl=shd(r.tc,-.55);Z.wt=shd(r.tc,-.8);if(r.id.slice(0,3)==='in_'){Z.wl=shd(r.tc,-.12);Z.wt=shd(r.tc,-.62)}}const zn=r.zone,rr=mulberry(hash(r.id)+88),fl=Z.fl,fl2=Z.fl2,wl=Z.wl,wt=Z.wt,ac=Z.ac;
   const isG=c=>c==='.'||c===','||c==='f',P=(x,y,w,h,c)=>pr(g,x,y,w,h,c);
   const sp=(px,py,n,c,w,h)=>{g.fillStyle=c;w=w||1;h=h||1;for(let i=0;i<n;i++)g.fillRect(px+Math.floor(rr()*(17-w)),py+Math.floor(rr()*(17-h)),w,h)};
   const bevel=(px,py,a,b)=>{P(px,py,16,1,a);P(px,py,1,16,a);P(px,py+15,16,1,b);P(px+15,py,1,16,b)};
@@ -4738,6 +4738,166 @@ const BGT={
       X.lineWidth=3;X.beginPath();X.moveTo(x-24+k*8,y-22);X.quadraticCurveTo(x+6,y-4,x+22-k*8,y+24);X.stroke();X.globalCompositeOperation='source-over';X.globalAlpha=1}
     if(L.ph==='bullet'&&!SOUL.dead){L.tr=L.tr||[];L.tr.push([SOUL.x,SOUL.y]);if(L.tr.length>6)L.tr.shift();const c=ROLES[S.role].soul;L.tr.forEach((p,i)=>{if(i>=L.tr.length-1)return;X.globalAlpha=.06+i*.035;soulShape(p[0]-4,p[1]-4,c,1)});X.globalAlpha=1}else L.tr=null}
   drawFuse(L)}}
+
+// =================================================================== EXT9: redesigned buildings, enterable interiors, furniture with hiding places
+Object.assign(WEAPONS,{pluma:{n:'Pluma estilográfica',atk:4,mag:9,bar:{n:2,sp:1.3},d:'Más fuerte que la espada. +MAG, dos trazos.',p:0},bate:{n:'Bate con clavos',atk:14,bar:{n:1,sp:1.05},d:'Diplomacia de la Papelera.',p:0}});
+Object.assign(ARMORS,{vigia:{n:'Capa del vigía',def:8,gr:.15,d:'+15% área de roce. Huele a noches en vela.',p:0}});
+Object.assign(CHIPS,{engranaje:{n:'Engranaje',ram:3,d:'+4 ATQ y +4 DEF. Hecho a mano.',p:0},reliquia:{n:'Reliquia familiar',ram:2,d:'+3 ATQ, +3 DEF, +3 MAG. Era de tu familia.',p:0}});
+{const _s9=stats;stats=function(m){const s=_s9(m),c=s.ch;if(c.includes('engranaje')){s.atk+=4;s.def+=4}if(c.includes('reliquia')){s.atk+=3;s.def+=3;s.mag+=3}return s}}
+// [solid, text while searching, text when there is nothing]
+const FUR={painting:[0,'Levantas el cuadro con cuidado.','Detrás del cuadro solo hay pared. Y una araña que te saluda.'],shelf:[1,'Revisas los libros uno por uno.','Libros polvorientos. Ninguno esconde nada... esta vez.'],
+ pot:[1,'Escarbas un poco en la maceta.','Tierra, raíces y un gusano ofendido.'],rug:[0,'Levantas una esquina de la alfombra.','Debajo solo hay polvo barrido a escondidas.'],barrel:[1,'Destapas el barril.','Huele a manzanas viejas. Está vacío.'],
+ crate:[1,'Abres la caja.','Paja. Solo paja.'],clock:[0,'Abres la portezuela del reloj.','Tic. Tac. Nada más.'],table:[1,'Miras debajo de la mesa.','Un chicle fosilizado. Mejor no tocarlo.'],chair:[1,'','Una silla. Cojea de una pata.'],
+ bed:[1,'Miras bajo el colchón.','Pelusas del tamaño de un Bug.'],poster:[0,'Despegas una esquina del póster.','Pared desconchada.'],fireplace:[0,'Tanteas entre las cenizas de la orilla.','El fuego crepita. No hay nada entre las cenizas.'],
+ bench:[1,'Revuelves las herramientas.','Tornillos sueltos y una tuerca huérfana.'],anvil:[1,'','Un yunque. Pesa más que tú.'],safe:[1,'',''],trunk:[1,'Abres el baúl.','El baúl está vacío.'],telescope:[1,'',''],
+ banner:[0,'Miras detrás del estandarte.','Piedra fría.'],mattress:[1,'Levantas el colchón.','Muelles oxidados.'],lamp:[1,'','Una lámpara. Da una luz tibia.'],counter:[1,'Miras detrás del mostrador.','Recibos viejos y una moneda de chocolate derretida.'],
+ window:[0,'','Por la ventana se ve el exterior.'],vines:[0,'','Enredaderas de código verde. Laten despacio.'],graffiti:[0,'','Un grafiti: "LA PAPELERA NO SE VACÍA".'],books:[1,'','']};
+const inMap=()=>['##############','##############','#............#','#............#','#............#','#............#','#............#','#............#','######..######','      ..      '];
+const inMap2=()=>['##############','##############','#........#...#','#........#...#','#............#','#........#...#','#........#...#','#........#...#','######..######','      ..      '];
+const F=(s,x,y,o)=>Object.assign({k:'fur',s,x,y},o||{});
+const HOUSES={};
+function inRoom(id,n,parent,hs,tc,objs,map){const h=ROOMS[parent].obj.find(o=>o.k==='house'&&o.s===hs[0]&&o.x===hs[1]);const dx=hs[2]!=null?hs[2]:Math.floor(h.w/2);
+  RM(id,{n,zone:'casa',mus:'home',pad:' ',tc,map:map||inMap(),ex:[{r:[6,9,2,1],to:parent,at:[h.x+dx,h.y+h.h+.2],d:0}],obj:objs});
+  ROOMS[parent].obj.push({k:'hdoor',x:h.x+dx,y:h.y+h.h-1,to:id,at:[7,7.3],lbl:n});h.door=dx;CORR[id]=parent}
+inRoom('in_hut','Casa de Doña Mora','aldea',['hut',9],null,[F('fireplace',2,1),F('window',4,1),F('painting',7,1,{v:0,id:'hut1',hide:{g:30},t:'Pegadas con cinta detrás del cuadro: ¡30 G!'}),F('clock',10,1),
+  F('shelf',1,2),F('bed',12,2,{h:2}),F('table',5,4,{w:2}),F('chair',4,4),F('chair',7,4),F('rug',5,6,{w:3,id:'hut2',hide:{give:['i','te']},t:'Bajo la alfombra hay una bolsita de TÉ DE HIERBAS.'}),F('pot',1,7,{id:'hut3',hide:{give:['i','bellota']},t:'Alguien enterró una BELLOTA aquí. Ahora es tuya.'}),
+  {k:'tnpc',x:9,y:5,lk:LK('conejo','Vestido',2,'Flor','Collar',0),who:'Doña Mora',t:['Pasa, pasa. Aquí las puertas nunca se cerraron con llave.','En esta aldea todos escondemos algo detrás de un cuadro o debajo de una alfombra. Es tradición.','Si tienes buen ojo, verás brillar lo que otros no ven.']}]);
+inRoom('in_tower','Torre del vigía','aldea',['tower',15],'#8a8a96',[F('banner',3,1,{id:'tow1',hide:{give:['i','cafe']},t:'Detrás del estandarte hay un termo de CAFÉ CARGADO. Para las guardias largas.'}),F('window',6,1,{v:1}),F('window',8,1,{v:1}),F('painting',10,1,{v:1,e:'Retrato del primer vigía. Al dorso, a lápiz: "Mi llave la dejé donde vivía la familia del risco."'}),
+  F('telescope',11,2),F('trunk',2,3,{id:'tow2',need:'llavecita',lock:'El baúl tiene una cerradura pequeña con una torre grabada. No se abre.',hide:{give:['a','vigia']},t:'La llavecita gira. Dentro está la CAPA DEL VIGÍA. (armadura)'}),F('barrel',1,7),F('crate',12,7,{id:'tow3',hide:{give:['i','galleta']},t:'Entre la paja hay una GALLETA de las de antes.'}),F('rug',5,5,{w:4}),
+  {k:'tnpc',x:6,y:4,lk:LK('buho','Capa',6,'Nada','Gafas',0),who:'Vigía',t:['Desde aquí arriba se ve todo el bosque. Y el cielo... ya no es el de antes.','¿El baúl? Es del vigía anterior. Perdió la llave hace años, cerca del risco.']}]);
+inRoom('in_stall','Trastienda de Zari','aldea',['stall',21,5],'#a87440',[F('shelf',5,1),F('shelf',6,1),F('poster',9,1,{id:'sta1',hide:{give:['i','dorada']},t:'Detrás del póster, en un hueco: ¡una BELLOTA DORADA!'}),
+  F('crate',1,2),F('crate',2,2),F('crate',1,3,{id:'sta2',hide:{give:['i','mojito']},t:'Zari guardaba aquí un MOJITO DE MENTA. Ya no.'}),F('barrel',12,2,{id:'sta3',hide:{g:40},t:'En el fondo del barril tintinean 40 G.'}),F('counter',4,5,{w:4}),F('pot',12,7),F('rug',6,7,{w:2})]);
+inRoom('in_library','Biblioteca','aldea',['library',29],'#6a5a8a',[F('shelf',1,1),F('shelf',2,1),F('shelf',4,1),F('shelf',5,1),F('painting',6,1,{v:2,id:'lib1',hide:{fl:'nota314'},t:'Un papelito pegado detrás: "Taller — caja fuerte: 3 1 4".'}),F('shelf',7,1),F('shelf',8,1),
+  F('books',2,4,{c:'#d04040',g:'lib',n:3,nm:'rojo'}),F('books',4,4,{c:'#4080e0',g:'lib',n:1,nm:'azul'}),F('books',6,4,{c:'#40b050',g:'lib',n:2,nm:'verde'}),
+  F('table',2,6,{w:2,e:'Un poema abierto sobre la mesa: "Primero el cielo, luego la hierba, y al final la brasa."'}),F('lamp',1,7),
+  {k:'gate',x:9,y:4,h:1,cond:'seq:lib:3',id:'libgate',sw:'Una estantería empotrada. Parece que podría moverse...'},{k:'chest',x:11,y:3,id:'libro',give:['w','pluma'],t:'¡Obtienes la PLUMA ESTILOGRÁFICA! (arma)'},F('lamp',12,7),F('rug',10,5,{w:3}),
+  {k:'tnpc',x:7,y:6,lk:LK('gato','Túnica',4,'Nada','Gafas',0),who:'Bibliotecaria',t:['Shhh. ...Perdón, es la costumbre. Puedes hablar.','Hay tres libros gruesos que nadie devuelve nunca a su sitio. Dicen que si los tiras en el orden del poema, pasa algo.']}],inMap2());
+inRoom('in_workshop','Taller','aldea',['workshop',37],'#8a5a3a',[F('fireplace',3,1,{v:1}),F('poster',9,1,{id:'wor1',hide:{g:25},t:'Detrás del plano hay 25 G de emergencia.'}),F('bench',6,2,{w:2}),F('anvil',5,4),
+  F('safe',12,2,{id:'wor2',code:'314',hide:{give:['c','engranaje']},t:'¡Clac! Dentro hay un chip ENGRANAJE hecho a mano. (+4 ATQ, +4 DEF)'}),F('barrel',1,7,{id:'wor3',hide:{give:['i','pizza']},t:'Una PIZZA FRÍA escondida del resto del taller.'}),F('crate',12,7),
+  {k:'tnpc',x:8,y:4,lk:LK('oso','Overol',1,'Nada','Nada',0),who:'Herrero',t:['¿La caja fuerte? Es mía. Y no recuerdo la clave.','La apunté en un papel y lo escondí detrás de un cuadro en la biblioteca, para no perderlo. Luego olvidé cuál cuadro.','Si la abres, quédate lo de dentro. Te lo habrás ganado.']}]);
+inRoom('in_ruin','Casa en ruinas','ruinas',['ruin',6,5],'#3a6a3a',[F('vines',2,1),F('vines',5,1),F('vines',11,1),F('painting',8,1,{v:3,id:'rui1',hide:{fl:'llavecita'},t:'Detrás de la foto de tu familia hay una LLAVECITA oxidada. Tiene una torre grabada.'}),
+  F('table',3,3,{w:2,brk:1}),F('mattress',11,3),F('crate',1,6),F('rug',5,5,{w:3,id:'rui2',hide:{give:['c','reliquia']},t:'Bajo la alfombra, envuelto en un pañuelo: un chip RELIQUIA FAMILIAR. (+3 ATQ, +3 DEF, +3 MAG)'}),
+  {k:'memory',x:9,y:5,id:'ruina2',t:['El salón. Aquí se contaban historias antes de dormir.','Casi puedes oír una: "...y entonces Chester subió a la torre, y no tuvo miedo."']}]);
+inRoom('in_gang1','Guarida de la banda','papelera',['gang',6],'#5a4a4a',[F('poster',7,1,{id:'gan1',hide:{g:60},t:'El botín de la banda: 60 G detrás del póster.'}),F('graffiti',10,1),F('mattress',2,2,{id:'gan2',hide:{give:['i','dorada']},t:'Bajo el colchón alguien guardaba una BELLOTA DORADA.'}),F('mattress',4,2),
+  F('crate',12,3),F('barrel',12,4),F('table',6,5,{w:2}),{k:'tnpc',x:9,y:6,lk:LK('mapache','Chaqueta',9,'Gorra','Parche',0),who:'Mapache dormido',t:['Zzz... no fui yo... el póster ya estaba torcido... zzz.']}]);
+inRoom('in_gang2','Guarida del fondo','papelera',['gang',30],'#4a4a5a',[F('poster',4,1,{id:'gan3',hide:{fl:'gangsw'},t:'Detrás del póster hay un interruptor. ¡Clac! Algo se abre al fondo.'}),F('graffiti',7,1),F('barrel',1,2),F('barrel',2,2),F('crate',1,7,{id:'gan4',hide:{give:['i','promax']},t:'Entre trastos: un PRO MAX sin abrir.'}),F('mattress',6,6),
+  {k:'gate',x:9,y:4,h:1,cond:'fl:gangsw',id:'ganggate',sw:'Una plancha de metal encajada en la pared. No hay manija.'},{k:'chest',x:11,y:3,id:'bate',give:['w','bate'],t:'¡Obtienes el BATE CON CLAVOS! (arma)'},F('crate',12,7)],inMap2());
+inRoom('in_shop2','Almacén de Rocco','papelera',['shop2',14],'#6a5a3a',[F('shelf',2,1),F('shelf',3,1),F('shelf',4,1),F('painting',8,1,{v:2,id:'sho1',hide:{give:['i','retina']},t:'Rocco esconde su RETINA SOUR detrás del cuadro. Escondía.'}),F('crate',1,3),F('crate',1,4),F('crate',2,4,{id:'sho2',hide:{give:['i','cafe']},t:'Una caja mal cerrada: CAFÉ CARGADO.'}),
+  F('barrel',12,2),F('counter',5,5,{w:4}),F('rug',6,7,{w:2})]);
+for(const id of['in_library','in_gang2']){const r=ROOMS[id];for(let y=2;y<8;y++)if(y!==4){const row=r.map[y];r.map[y]=row.slice(0,9)+'#'+row.slice(10)}}
+{const _c9=cond;cond=function(c){if(typeof c==='string'){if(c.startsWith('seq:')){const[,g,n]=c.split(':');return(S.fl['sq:'+g]||0)>=+n}if(c.startsWith('fl:'))return!!S.fl[c.slice(3)]}return _c9(c)}}
+{const _or9=objRect;objRect=function(o){if(o.k==='fur')return[o.x*16,o.y*16,(o.w||1)*16,(o.h||1)*16];if(o.k==='tnpc')return[o.x*16+2,o.y*16+9,12,7];if(o.k==='hdoor')return[o.x*16,o.y*16,16,16];return _or9(o)}}
+{const _is9=isSolidObj;isSolidObj=function(o){if(o.k==='fur')return!!FUR[o.s][0];if(o.k==='hdoor')return false;return _is9(o)}}
+{const _sy9=sortY;sortY=function(o){if(o.k==='fur')return o.s==='rug'?-1e4:FUR[o.s][0]?o.y*16+(o.h||1)*16-2:o.y*16+1;if(o.k==='tnpc')return o.y*16+14;if(o.k==='hdoor')return-1e4;return _sy9(o)}}
+function hideGive(o){const h=o.hide;S.fl['hd:'+o.id]=1;if(h.give)giveThing(h.give);if(h.g)S.g+=h.g;if(h.fl)S.fl[h.fl]=1;AU.sfx('save');saveGame()}
+{const _int9=interact;interact=async function(){const[fx,fy]=facingPoint();const o=NET.playerNear(fx,fy)?null:objAtPoint(fx,fy);
+  if(o&&o.k==='hdoor'){AU.sfx('door');transition(o.to,7,7.3,1);return}
+  if(o&&o.k==='tnpc'){AU.sfx('sel');await say(o.t,{who:o.who,look:o.lk});return}
+  if(o&&o.k==='gate'&&o.sw&&!cond(o.cond)){AU.sfx('sel');await say([o.sw]);return}
+  if(o&&o.k==='fur'){const D=FUR[o.s];AU.sfx('sel');
+    if(o.s==='books'){const k='sq:'+o.g,cur=S.fl[k]||0;if(cur>=3){await say(['El libro '+o.nm+' ya no se mueve.']);return}
+      if(cur===o.n-1){S.fl[k]=o.n;AU.sfx('ok');if(o.n===3){AU.sfx('door');await say(['Tiras del libro '+o.nm+'. Clic... clic... ¡CLAC!','Al fondo, una estantería se desliza hacia un lado.']);saveGame()}else await say(['Tiras del libro '+o.nm+'. Se oye un clic dentro de la pared.'])}
+      else{S.fl[k]=0;AU.sfx('no');await say(['Tiras del libro '+o.nm+'. Algo se destraba... y todos los libros vuelven a su sitio.'])}return}
+    if(o.s==='telescope'){await say(['Miras por el telescopio.',S.fl.cpu?'Sobre las Ruinas, un tallo de datos sube hasta perderse en las nubes.':'Al sur, entre los árboles, se ve el tejado hundido de una casa en el risco.','Más lejos, cuatro torres. La del centro parpadea.']);return}
+    if(o.s==='safe'&&!S.fl['hd:'+o.id]){const c=await inputText('Caja fuerte. Clave (3 números):','',3);if(c==null)return;if(c.trim()===o.code){AU.sfx('ok');hideGive(o);await say([o.t])}else{AU.sfx('no');await say(['La rueda gira, pero la puerta no cede.'])}return}
+    if(o.s==='safe'){await say(['La caja fuerte está abierta y vacía.']);return}
+    if(o.need&&!S.fl[o.need]){await say([o.lock]);return}
+    if(o.hide&&!S.fl['hd:'+o.id]){if(D[1])await say([D[1]]);hideGive(o);await say([o.t]);return}
+    await say([o.e||D[2]]);return}
+  return _int9()}}
+// ------------------------------------------------ furniture art
+function drawFur(o){const x=o.x*16,y=o.y*16,t=FR,w=(o.w||1)*16,found=o.id&&S.fl['hd:'+o.id];
+  switch(o.s){
+   case'painting':{const dx=found?1:0,dy=found?1:0;R(x+2+dx,y+3+dy,12,10,'#8a6420');R(x+3+dx,y+4+dy,10,8,'#d8b050');const ax=x+4+dx,ay=y+5+dy;
+     if(o.v===1){R(ax,ay,8,6,'#3a3048');ell(ax+4,ay+2,2,2,'#e0c0a0');R(ax+2,ay+4,5,2,'#6a4a8a')}else if(o.v===2){R(ax,ay,8,6,'#f0e8d8');R(ax+1,ay+1,3,3,'#d04040');R(ax+4,ay+2,3,3,'#4060d0');R(ax+2,ay+4,5,1,'#e0c020')}
+     else if(o.v===3){R(ax,ay,8,6,'#c8b890');for(let i=0;i<3;i++){R(ax+1+i*2.5,ay+2-(i===1?1:0),2,4+(i===1?1:0),['#8a5a3a','#b07848','#8a5a3a'][i]);R(ax+1+i*2.5,ay+1-(i===1?1:0),2,1,'#e8c8a0')}}
+     else{R(ax,ay,8,3,'#80c0f0');R(ax,ay+3,8,3,'#4a9a4a');R(ax+5,ay+1,2,2,'#fff0a0');X.fillStyle='#3a7a3a';X.beginPath();X.moveTo(ax,ay+4);X.lineTo(ax+3,ay+1);X.lineTo(ax+6,ay+4);X.fill()}
+     R(x+7,y+1,2,2,'#555');break}
+   case'shelf':R(x,y,16,16,'#5a3a22');R(x+1,y+1,14,6,'#2a1a10');R(x+1,y+9,14,6,'#2a1a10');for(let i=0;i<6;i++){const c=['#c84848','#4878c8','#48a848','#d0a030','#8a50b0','#d07030'][(i+o.x)%6];R(x+2+i*2,y+2+(i%3===0?1:0),2,5-(i%3===0?1:0),c);R(x+2+i*2,y+10+(i%2),2,5-(i%2),['#48a848','#c84848','#d0a030','#4878c8','#d07030','#8a50b0'][(i+o.x)%6])}R(x,y+7,16,2,'#7a5232');R(x,y+15,16,1,'#3a2418');break;
+   case'books':R(x+1,y+2,14,14,'#5a3a22');R(x+2,y+3,12,5,'#2a1a10');R(x+2,y+10,12,5,'#2a1a10');for(let i=0;i<5;i++)R(x+3+i*2,y+4,2,4,i===2?o.c:'#8a8070');R(x+3,y+11,10,4,'#6a6258');R(x+7+((S.fl['sq:'+o.g]||0)>=o.n?0:0),y+3+((S.fl['sq:'+o.g]||0)>=o.n?2:0),2,5,o.c);R(x+1,y+8,14,2,'#7a5232');break;
+   case'pot':R(x+4,y+9,8,6,'#b0603a');R(x+3,y+8,10,2,'#c87848');R(x+5,y+14,6,1,'#7a3a20');R(x+7,y+3,2,6,'#2f7a3a');ell(x+5,y+5,3,2,'#3c9a48');ell(x+11,y+4,3,2,'#3c9a48');ell(x+8,y+2,2,2,'#58b860');break;
+   case'rug':{const h=(o.h||1)*16;R(x+1,y+2,w-2,h-4,'#9a3838');RO(x+2,y+3,w-4,h-6,'#e0b050');for(let i=6;i<w-6;i+=6)R(x+i,y+h/2-1,2,2,'#e0b050');for(let i=2;i<w-2;i+=3){R(x+i,y+1,1,1,'#d8c8a0');R(x+i,y+h-2,1,1,'#d8c8a0')}if(found)R(x+w-6,y+2,5,4,'#7a2828');break}
+   case'barrel':R(x+3,y+2,10,13,'#8a5a2a');R(x+2,y+5,12,7,'#9a6a36');R(x+2,y+4,12,1,'#4a4a52');R(x+2,y+11,12,1,'#4a4a52');R(x+4,y+2,8,1,'#b88a50');R(x+5,y+5,1,7,'#6a4420');R(x+10,y+5,1,7,'#6a4420');break;
+   case'crate':R(x+1,y+3,14,12,'#a87440');RO(x+1,y+3,14,12,'#5a3a1a');R(x+1,y+8,14,1,'#5a3a1a');X.strokeStyle='#7a5228';X.lineWidth=1;X.beginPath();X.moveTo(x+2,y+4);X.lineTo(x+14,y+14);X.stroke();R(x+2,y+4,12,1,'#c89a60');break;
+   case'clock':{R(x+4,y+1,8,14,'#6a4424');ell(x+8,y+5,3,3,'#f0e8d0');R(x+8,y+3,1,2,'#222');R(x+8,y+5,2,1,'#222');const s=Math.round(Math.sin(t*.08)*2);R(x+7+s,y+9,1,4,'#d8b040');ell(x+7.5+s,y+13,1.5,1.5,'#d8b040');break}
+   case'table':if(o.brk){R(x+1,y+6,w-10,3,'#7a5232');X.fillStyle='#7a5232';X.beginPath();X.moveTo(x+w-10,y+6);X.lineTo(x+w-2,y+13);X.lineTo(x+w-4,y+15);X.lineTo(x+w-12,y+9);X.fill();R(x+2,y+9,2,6,'#5a3a22')}
+     else{R(x,y+4,w,6,'#9a6a3a');R(x,y+4,w,1,'#c08a50');R(x,y+9,w,2,'#6a4424');R(x+2,y+11,2,4,'#5a3a22');R(x+w-4,y+11,2,4,'#5a3a22');if(w>16){R(x+w/2-3,y+2,6,3,'#e8e0d0');R(x+w/2-2,y+1,2,1,'#c84848')}}break;
+   case'chair':R(x+4,y+2,8,7,'#8a5a2a');R(x+4,y+2,8,1,'#b07a40');R(x+3,y+9,10,3,'#9a6a3a');R(x+4,y+12,2,3,'#5a3a22');R(x+10,y+12,2,3,'#5a3a22');break;
+   case'bed':{const h=(o.h||2)*16-4;R(x,y,16,h,'#5a3a22');R(x+1,y+1,14,h-2,'#e8e0d0');R(x+3,y+2,10,5,'#ffffff');R(x+1,y+9,14,h-11,'#4a78b8');R(x+1,y+9,14,2,'#6a98d8');for(let i=13;i<h-3;i+=5)R(x+1,y+i,14,1,'#3a62a0');break}
+   case'poster':{const dx=found?1:0;R(x+3+dx,y+2,10,13,'#e8dcc0');R(x+4+dx,y+3,8,5,o.x%2?'#d04060':'#4060d0');T('★',x+8+dx,y+2,'#ffe040',12,'center');R(x+4+dx,y+10,8,1,'#888');R(x+4+dx,y+12,6,1,'#888');if(found){X.fillStyle='#c8bca0';X.beginPath();X.moveTo(x+14,y+15);X.lineTo(x+10,y+15);X.lineTo(x+14,y+11);X.fill()}break}
+   case'fireplace':{R(x,y+2,16,14,o.v?'#4a4a52':'#7a7a84');R(x,y+2,16,2,o.v?'#6a6a74':'#9a9aa6');R(x+3,y+6,10,10,'#18100c');for(let i=0;i<4;i++){const fh=4+Math.sin(t*.25+i*1.9)*2+(o.v?2:0);X.fillStyle=i%2?'#ffd040':'#ff8020';X.beginPath();X.moveTo(x+3+i*2.5,y+16);X.lineTo(x+4.2+i*2.5,y+16-fh);X.lineTo(x+5.5+i*2.5,y+16);X.fill()}
+     if(GFX()!==1){X.globalCompositeOperation='lighter';X.globalAlpha=.5+Math.sin(t*.2)*.1;X.drawImage(glowSprite('#ff9040'),x-16,y-10,48,48);X.globalAlpha=1;X.globalCompositeOperation='source-over'}break}
+   case'bench':R(x,y+5,w,5,'#8a6a48');R(x,y+5,w,1,'#b08a60');R(x+1,y+10,2,5,'#5a4028');R(x+w-3,y+10,2,5,'#5a4028');R(x+4,y+2,2,4,'#8a8a94');R(x+3,y+1,4,2,'#5a5a66');R(x+12,y+3,8,1,'#c0c0c8');R(x+12,y+2,2,3,'#a04020');R(x+24,y+2,4,4,'#c8a040');break;
+   case'anvil':R(x+2,y+5,12,4,'#4a4a56');R(x+1,y+5,3,2,'#4a4a56');R(x+2,y+5,12,1,'#7a7a8a');R(x+6,y+9,4,3,'#3a3a44');R(x+4,y+12,8,3,'#4a4a56');break;
+   case'safe':R(x+1,y+2,14,13,'#5a5e6a');RO(x+1,y+2,14,13,'#2a2c34');R(x+2,y+3,12,1,'#8a8e9a');if(found){R(x+3,y+4,10,10,'#14141a')}else{ell(x+8,y+9,3,3,'#c8ccd8');ell(x+8,y+9,1,1,'#2a2c34');R(x+12,y+7,1,4,'#c8ccd8')}break;
+   case'trunk':R(x+1,y+6,14,9,'#7a4a22');R(x+1,y+4,14,4,found?'#2a1a10':'#9a6432');RO(x+1,y+4,14,11,'#3a2210');R(x+7,y+8,2,3,'#e0c040');R(x+1,y+10,14,1,'#5a3418');break;
+   case'telescope':R(x+7,y+8,2,7,'#5a4028');R(x+4,y+14,8,1,'#5a4028');X.save();X.translate(x+8,y+7);X.rotate(-.5);X.fillStyle='#c8a040';X.fillRect(-7,-2,12,4);X.fillStyle='#8a6a20';X.fillRect(4,-3,3,6);X.fillStyle='#a0d0ff';X.fillRect(-8,-2,1,4);X.restore();break;
+   case'banner':{R(x+3,y+1,10,1,'#8a6a20');for(let i=0;i<12;i++){const s=Math.round(Math.sin(t*.06+i*.5)*.6);R(x+4+s,y+2+i,8,1,i%4<2?'#b03030':'#c84040')}R(x+6,y+5,4,4,'#e0c040');if(found)R(x+10,y+10,3,4,'#7a7a84');break}
+   case'mattress':R(x+1,y+5,14,9,'#b8b0a0');R(x+1,y+5,14,2,'#d0c8b8');R(x+2,y+6,5,3,'#e8e4dc');for(let i=4;i<14;i+=4)R(x+i,y+10,1,3,'#9a9284');R(x+9,y+9,5,5,'#6a7a5a');break;
+   case'lamp':R(x+7,y+6,2,9,'#6a5a3a');R(x+5,y+14,6,1,'#6a5a3a');X.fillStyle='#f0d890';X.beginPath();X.moveTo(x+5,y+2);X.lineTo(x+11,y+2);X.lineTo(x+13,y+7);X.lineTo(x+3,y+7);X.fill();if(GFX()!==1){X.globalCompositeOperation='lighter';X.globalAlpha=.55;X.drawImage(glowSprite('#ffe8a0'),x-14,y-16,44,44);X.globalAlpha=1;X.globalCompositeOperation='source-over'}break;
+   case'counter':R(x,y+3,w,12,'#7a5232');R(x,y+3,w,3,'#b08a58');R(x,y+6,w,1,'#5a3a22');for(let i=8;i<w;i+=16)R(x+i,y+7,1,8,'#5a3a22');R(x+4,y,5,4,'#c84848');R(x+w-12,y+1,6,3,'#e8e0d0');break;
+   case'window':if(o.v){R(x+6,y+3,4,10,'#2a2a34');R(x+7,y+4,2,8,'#ffe090')}else{R(x+2,y+3,12,10,'#6a4424');R(x+3,y+4,10,8,'#9ad0f0');R(x+3,y+4,10,3,'#c0e4ff');R(x+7,y+4,2,8,'#6a4424');R(x+3,y+7,10,1,'#6a4424');R(x+1,y+13,14,1,'#8a6434')}break;
+   case'vines':for(let i=0;i<4;i++){const vx=x+2+i*4,ph=Math.sin(t*.04+i+o.x);R(vx,y,1,10+((i*5+o.x)%6),'#2a8a40');R(vx+1,y+3+i,1,1,ph>0?'#60ff80':'#3aa850');R(vx-1,y+7+((i*3)%4),1,1,'#3aa850')}break;
+   case'graffiti':T(['★','~','X','♥'][o.x%4],x+3,y+1,'#ff60c0',16);R(x+2,y+12,11,1,'#60ffc0');R(x+4,y+14,7,1,'#ffe040');break}
+  if(o.hide&&!found&&(!o.need||S.fl[o.need])&&!o.code&&stats('av').ch.includes('ojo')&&(t+o.x*17)%90<14){const k=((t+o.x*17)%90)/14;X.globalAlpha=Math.sin(k*Math.PI);R(x+11,y+2,1,5,'#fff');R(x+9,y+4,5,1,'#fff');X.globalAlpha=1}}
+{const _do9=drawObj;drawObj=function(o){
+  if(o.k==='fur'){drawFur(o);return}if(o.k==='hdoor')return;
+  if(o.k==='tnpc'){const px=o.x*16+8,py=o.y*16+14;shadow(px,py);drawCharAt(o.lk,px,py+2,0,0);return}
+  if(o.k==='gate'&&o.sw){if(cond(o.cond))return;const x=o.x*16,y=o.y*16;if(o.id==='libgate'){R(x,y,16,16,'#5a3a22');for(let i=0;i<6;i++){R(x+2+i*2,y+2,2,5,['#c84848','#4878c8','#48a848'][i%3]);R(x+2+i*2,y+10,2,5,['#d0a030','#8a50b0','#d07030'][i%3])}R(x,y+7,16,2,'#7a5232')}else{R(x,y,16,16,'#5a5e6a');for(let i=0;i<16;i+=4)R(x+i,y,1,16,'#3a3e48');RO(x,y,16,16,'#2a2c34')}return}
+  _do9(o)}}
+// ------------------------------------------------ building art
+function hShadow(x,y,w,h){X.globalAlpha=.28;R(x-2,y+h-1,w+6,4,'#000');X.globalAlpha=.14;R(x+w,y+h*.45,5,h*.55,'#000');X.globalAlpha=1}
+function hWall(x,y,w,h,kind,c){R(x,y,w,h,c);
+  if(kind==='log'){for(let j=0;j<h;j+=5){R(x,y+j,w,1,shd(c,.18));R(x,y+j+4,w,1,shd(c,-.3))}for(let j=0;j<h-3;j+=5){ell(x+2,y+j+2.5,2,2,shd(c,.25));ell(x+w-2,y+j+2.5,2,2,shd(c,.25));ell(x+2,y+j+2.5,1,1,shd(c,-.2));ell(x+w-2,y+j+2.5,1,1,shd(c,-.2))}}
+  else if(kind==='plank'){for(let i=0;i<w;i+=6){R(x+i,y,1,h,shd(c,-.28));R(x+i+1,y,1,h,shd(c,.1));R(x+i+3,y+3+((i*7)%9),1,1,shd(c,-.35))}}
+  else if(kind==='brick'||kind==='stone'){const bh=kind==='stone'?7:5,bw=kind==='stone'?12:9;for(let j=0;j*bh<h;j++){const by=y+j*bh;R(x,by,w,1,shd(c,-.38));for(let i=-1;i*bw<w;i++){const bx=x+i*bw+(j%2?bw/2:0);if(bx>x&&bx<x+w)R(bx,by,1,Math.min(bh,y+h-by),shd(c,-.38));const tx=Math.max(x,bx+1),tw=Math.min(x+w,bx+bw)-tx;if(tw>0&&((i*3+j*5)%4===0))R(tx,by+1,tw,Math.min(bh-1,y+h-by-1),shd(c,.1))}}}
+  else if(kind==='metal'){for(let i=0;i<w;i+=4){R(x+i,y,2,h,shd(c,.14));R(x+i+2,y,1,h,shd(c,-.2))}for(let i=0;i<5;i++)R(x+3+((i*37)%Math.max(1,w-8)),y+4+((i*23)%Math.max(1,h-8)),3,2,'#8a5a3a')}
+  R(x,y,w,2,'rgba(0,0,0,.28)');R(x,y+h-2,w,2,shd(c,-.4))}
+function hRoof(x,y,w,rh,c,topW){for(let j=0;j<rh;j+=4){const k=j/rh,hw=lerp(topW/2,w/2+4,k),hw2=lerp(topW/2,w/2+4,Math.min(1,(j+4)/rh));X.fillStyle=(j/4)%2?c:shd(c,-.12);X.beginPath();X.moveTo(x+w/2-hw,y+j);X.lineTo(x+w/2+hw,y+j);X.lineTo(x+w/2+hw2,y+j+4);X.lineTo(x+w/2-hw2,y+j+4);X.fill();
+    for(let i=-hw2+((j/4)%2?3:0);i<hw2;i+=6)R(x+w/2+i,y+j+1,1,3,shd(c,-.3));R(x+w/2-hw,y+j,hw*2,1,shd(c,.16))}
+  R(x+w/2-topW/2-1,y-1,topW+2,2,shd(c,.3));R(x-4,y+rh,w+8,2,shd(c,-.45))}
+function hDoor(x,y,c,arch){R(x-1,y-1,14,19,shd(c,-.45));R(x,y,12,18,c);R(x+1,y+1,10,1,shd(c,.25));R(x+2,y+3,8,6,shd(c,-.15));R(x+2,y+11,8,5,shd(c,-.15));R(x+9,y+10,2,2,'#f0d050');if(arch){R(x,y,2,2,shd(c,-.45));R(x+10,y,2,2,shd(c,-.45))}R(x-2,y+18,16,2,'#8a8478')}
+function hWin(x,y,frame,box){R(x-1,y-1,12,11,frame);R(x,y,10,9,'#ffe9a0');R(x,y,10,3,'#fff6d0');R(x+4,y,2,9,frame);R(x,y+4,10,1,frame);R(x,y,2,9,'rgba(200,80,80,.55)');R(x+8,y,2,9,'rgba(200,80,80,.55)');R(x-2,y+10,14,2,shd(frame,.2));
+  if(box){R(x-1,y+12,12,3,'#6a4424');for(let i=0;i<4;i++){R(x+i*3,y+10,2,2,['#f06080','#f0d040','#ffffff','#f06080'][i]);R(x+i*3,y+12,1,1,'#3a8a40')}}
+  if(GFX()!==1){X.globalCompositeOperation='lighter';X.globalAlpha=.35;X.drawImage(glowSprite('#ffe8a0'),x-9,y-9,28,28);X.globalAlpha=1;X.globalCompositeOperation='source-over'}}
+function hSmoke(x,y,t,c){for(let i=0;i<4;i++){const k=((t*.4+i*10)%40)/40;X.globalAlpha=.35*(1-k);ell(x+Math.sin(k*5+i)*3,y-k*20,2+k*4,2+k*3,c||'#d8d8e0')}X.globalAlpha=1}
+{const _dh9=drawHouse;drawHouse=function(o){if(GFX()===1)return _dh9(o);const x=o.x*16,y=o.y*16,w=o.w*16,h=o.h*16,t=FR,wy=y+Math.round(h*.42),wh=h-Math.round(h*.42),dx=x+(o.door!=null?o.door*16+2:w/2-6),s=o.s;
+  hShadow(x,y,w,h);
+  if(s==='hut'){hWall(x,wy,w,wh,'log','#8a6a48');R(x+w-18,y+2,8,16,'#7a7a84');R(x+w-19,y+1,10,3,'#9a9aa6');hSmoke(x+w-14,y,t);hRoof(x,y+2,w,wy-y-2,'#5a8a3a',w*.45);for(let i=0;i<w;i+=7)R(x-3+i,wy+2,3,2+((i*3)%3),'#4a7a30');
+    hDoor(dx,y+h-20,'#6a4424');hWin(x+5,wy+7,'#5a3a1a',1);if(w>70)hWin(x+w-15,wy+7,'#5a3a1a',1);R(dx+15,wy+9,3,5,'#3a3a3a');R(dx+15,wy+10,3,3,(t%50<40)?'#ffd060':'#ffb040')}
+  else if(s==='tower'){const tx=x+8,tw=w-16;hWall(tx,y-14,tw,h+14,'stone','#8a8a94');R(tx,y-14,3,h+14,'rgba(255,255,255,.12)');R(tx+tw-4,y-14,4,h+14,'rgba(0,0,0,.22)');for(let i=0;i<4;i++){const bx=tx-2+i*((tw+4-8)/3);R(bx,y-22,8,9,'#8a8a94');R(bx,y-22,8,2,'#aaaab4');R(bx+6,y-22,2,9,'#6a6a74')}R(tx-2,y-14,tw+4,3,'#6a6a74');
+    for(const[wx,wy2]of[[tx+tw/2-2,y-4],[tx+6,y+16],[tx+tw-10,y+16]]){R(wx-1,wy2-1,6,12,'#3a3a44');R(wx,wy2,4,10,'#ffe090');R(wx,wy2,4,3,'#fff4c0')}
+    R(tx+tw/2,y-40,1,19,'#5a4028');for(let i=0;i<12;i++){const fy=Math.round(Math.sin(t*.1+i*.5)*1.5);R(tx+tw/2+1+i,y-39+fy,1,7-(i>8?i-8:0),i%4<2?'#c83030':'#e04848')}
+    hDoor(dx,y+h-20,'#5a3a22',1);R(dx-6,y+h-26,3,6,'#3a3a3a');R(dx-6,y+h-25,3,3,'#ffd060')}
+  else if(s==='stall'){R(x+2,wy,w-4,wh,'#7a5232');hWall(x+2,wy,w-22,wh,'plank','#9a6a3a');R(x,y+10,3,h-10,'#6a4424');R(x+w-3,y+10,3,h-10,'#6a4424');
+    for(let i=0;i<w+4;i+=8){const c=(i/8)%2?'#f4f4f4':'#e04848';R(x-2+i,y+8,8,14,c);R(x-2+i,y+8,8,2,shd(c==='#f4f4f4'?'#f4f4f4':c,.15));X.fillStyle=c;X.beginPath();X.arc(x+2+i,y+22,4,0,Math.PI);X.fill()}R(x-2,y+6,w+4,3,'#8a2a2a');
+    R(x+2,y+h-16,w-24,16,'#6a4424');R(x+2,y+h-18,w-24,3,'#b08a58');for(let i=0;i<3;i++){const cx=x+6+i*((w-34)/3);R(cx,y+h-25,12,7,'#a87440');RO(cx,y+h-25,12,7,'#5a3a1a');for(let k=0;k<3;k++)ell(cx+3+k*3,y+h-25,2,2,['#e04848','#f0d040','#80c060'][i])}
+    R(dx-1,y+h-22,14,22,'#3a2418');for(let i=0;i<4;i++){const sw=Math.round(Math.sin(t*.05+i)*.6);R(dx+i*3+sw,y+h-22,3,20,i%2?'#b03a3a':'#8a2a2a')}R(x+10,y+22,1,6,'#3a3a3a');R(x+8,y+27,5,5,(t%60<50)?'#ffd060':'#ffb040')}
+  else if(s==='library'){hWall(x,wy,w,wh,'brick','#6a5a8a');hRoof(x,y+2,w,wy-y-2,'#3a5a8a',w*.5);R(x+w/2-18,wy-1,36,10,'#2a2238');RO(x+w/2-18,wy-1,36,10,'#c8b060');T('LIBROS',x+w/2+4,wy-1,'#f0e0a0',12,'center');R(x+w/2-15,wy+2,5,4,'#c84848');R(x+w/2-12,wy+2,1,4,'#fff');
+    for(const cx of[dx-5,dx+14]){R(cx,wy+10,3,wh-12,'#d8d0e8');R(cx,wy+10,1,wh-12,'#f4f0ff');R(cx-1,wy+9,5,2,'#d8d0e8');R(cx-1,y+h-3,5,3,'#d8d0e8')}
+    hDoor(dx,y+h-20,'#4a3a5a',1);hWin(x+5,wy+12,'#3a2a4a');hWin(x+w-15,wy+12,'#3a2a4a')}
+  else if(s==='workshop'){hWall(x,wy,w,wh,'plank','#7a4a2a');R(x+8,y-6,10,22,'#5a5a64');R(x+7,y-8,12,3,'#7a7a86');hSmoke(x+13,y-9,t,'#9a9aa4');if(t%9<2)R(x+11+((t*7)%5),y-12-((t*3)%8),1,1,'#ffb040');
+    hRoof(x,y+4,w,wy-y-4,'#c87a3a',w*.6);X.save();X.translate(x+w-14,wy+10);X.rotate(t*.02);X.fillStyle='#c8ccd8';for(let i=0;i<8;i++){X.rotate(Math.PI/4);X.fillRect(-1.5,-7,3,4)}X.beginPath();X.arc(0,0,5,0,7);X.fill();X.fillStyle='#7a4a2a';X.beginPath();X.arc(0,0,2,0,7);X.fill();X.restore();
+    hDoor(dx,y+h-20,'#5a3418');hWin(x+5,wy+9,'#4a2a12');R(x+w-13,y+h-5,10,3,'#4a4a56');R(x+w-11,y+h-9,4,4,'#4a4a56');R(x+w-13,y+h-9,10,2,'#7a7a8a')}
+  else if(s==='club'){const n1=(t>>4)%2?'#ff60c0':'#60c0ff',n2=(t>>4)%2?'#60c0ff':'#ff60c0';hWall(x,wy,w,wh,'brick','#2a1a3a');R(x-2,y,w+4,wy-y+2,'#18102a');R(x-2,y,w+4,2,'#3a2a5a');for(let i=0;i<w;i+=10)R(x+2+i,y+4,6,1,'#241838');
+    T(o.lbl||'',x+w/2,y+6,n1,14,'center');RO(x+2,y+3,w-4,wy-y-4,n2);RO(x,wy,w,wh,n1);R(dx-1,y+h-20,14,20,'#0c0818');RO(dx-1,y+h-20,14,20,n2);R(dx+9,y+h-10,2,2,'#f0d050');
+    if(GFX()!==1){X.globalCompositeOperation='lighter';X.globalAlpha=.3;X.drawImage(glowSprite(n1),x+w/2-34,y-14,68,56);X.globalAlpha=1;X.globalCompositeOperation='source-over'}
+    for(const px of[dx-9,dx+19]){R(px,y+h-10,2,10,'#c8b060');ell(px+1,y+h-11,2,2,'#f0d880')}R(dx-8,y+h-8,7,1,'#a03050');R(dx+13,y+h-8,7,1,'#a03050')}
+  else if(s==='ruin'){const c='#6a5a4a';X.fillStyle=c;X.beginPath();X.moveTo(x,y+h);X.lineTo(x,wy-6);X.lineTo(x+10,wy-2);X.lineTo(x+16,wy-14);X.lineTo(x+w*.3,wy-8);X.lineTo(x+w*.42,wy+4);X.lineTo(x+w*.55,wy-4);X.lineTo(x+w*.7,wy-18);X.lineTo(x+w*.8,wy-6);X.lineTo(x+w-8,wy+2);X.lineTo(x+w,wy-4);X.lineTo(x+w,y+h);X.fill();
+    X.save();X.beginPath();X.rect(x,wy+6,w,wh-6);X.clip();hWall(x,wy+6,w,wh-6,'stone',c);X.restore();
+    X.strokeStyle='#4a3020';X.lineWidth=3;X.beginPath();X.moveTo(x+12,wy-10);X.lineTo(x+w*.5,y+4);X.lineTo(x+w*.72,wy-14);X.stroke();X.beginPath();X.moveTo(x+w*.5,y+4);X.lineTo(x+w*.36,wy);X.stroke();
+    R(dx-1,y+h-20,14,20,'#0a0a08');R(dx-2,y+h-21,16,2,'#4a3a2a');R(x+8,wy+12,10,8,'#0a0a08');R(x+w-20,wy+14,10,8,'#0a0a08');R(x+w-20,wy+14,10,1,'#4a3a2a');
+    for(let i=0;i<9;i++){const vx=x+4+((i*29)%(w-8)),vl=12+((i*7)%22);for(let j=0;j<vl;j+=2){const on=((t>>3)+i*3+j)%14===0;R(vx+Math.round(Math.sin(j*.4+i)*1.5),wy+j,1,2,on?'#a0ffb0':j%4?'#2a9a48':'#40c060')}}
+    for(let i=0;i<4;i++)R(x+6+i*((w-16)/3),y+h-3,6,3,'#5a4a3a')}
+  else if(s==='gang'){hWall(x,wy-2,w,wh+2,'metal','#5a5e68');X.fillStyle='#3a5a6a';X.beginPath();X.moveTo(x-4,wy);X.lineTo(x+w*.6,wy-12);X.lineTo(x+w+4,wy-4);X.lineTo(x+w+4,wy+3);X.lineTo(x-4,wy+4);X.fill();X.fillStyle='#4a6e80';X.beginPath();X.moveTo(x-4,wy);X.lineTo(x+w*.6,wy-12);X.lineTo(x+w*.6,wy-9);X.lineTo(x-4,wy+2);X.fill();
+    for(let i=0;i<3;i++)R(x+6+i*18,wy-5-((i*5)%4),8,3,'#2a2a30');R(dx-1,y+h-20,14,20,'#2a2a30');R(dx,y+h-19,12,19,'#6a4a2a');R(dx,y+h-13,12,2,'#3a2a1a');R(dx,y+h-6,12,2,'#3a2a1a');R(dx+9,y+h-10,2,2,'#c0c0c8');
+    R(x+5,wy+9,11,9,'#1a1a20');X.strokeStyle='#8a6a40';X.lineWidth=2;X.beginPath();X.moveTo(x+5,wy+9);X.lineTo(x+16,wy+18);X.moveTo(x+16,wy+9);X.lineTo(x+5,wy+18);X.stroke();
+    T('★',x+w-22,wy+6,'#ff60c0',20);T('~',x+w-14,wy+18,'#60ffc0',20);R(x+w-24,wy+30,14,1,'#ffe040');if(t%70<50){X.globalAlpha=.8;R(x+3,wy+4,2,2,'#ff4040');X.globalAlpha=1}}
+  else if(s==='shop2'){hWall(x,wy,w,wh,'brick','#8a5a3a');R(x-2,y+6,w+4,wy-y-4,'#3a3020');R(x-2,y+6,w+4,2,'#5a4a30');T('ROCCO',x+w/2,y+9,'#ffd060',16,'center');for(let i=0;i<w;i+=8)ell(x+2+i,y+wy-y+0,1.5,1.5,((t>>3)+i/8)%3===0?'#fff0a0':'#a08030');
+    for(let i=0;i<w+4;i+=8){const c=(i/8)%2?'#f4e8d0':'#e0a040';R(x-2+i,wy+2,8,7,c);X.fillStyle=c;X.beginPath();X.arc(x+2+i,wy+9,4,0,Math.PI);X.fill()}
+    hDoor(dx,y+h-20,'#5a3a22');R(x+4,wy+16,dx-x-8,14,'#2a2a34');R(x+5,wy+17,dx-x-10,12,'#9ad0f0');R(x+5,wy+17,dx-x-10,3,'#c0e4ff');for(let i=0;i<3;i++)R(x+8+i*8,wy+23,5,6,['#c84848','#48a848','#d0a030'][i]);
+    R(dx+18,wy+16,w-(dx-x)-22,14,'#2a2a34');R(dx+19,wy+17,w-(dx-x)-24,12,'#9ad0f0')}
+  else _dh9(o)}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
