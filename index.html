@@ -5082,6 +5082,93 @@ function finDraw(){const F=WT.fin;if(!F)return;const t=FR,[bx,by]=finPos();gx();
   else await say(['Un puño atraviesa el muro. Detrás no hay cielo: hay una habitación. Y una MANO. Real. Demasiado real.']);
   await say(['EL RESPONSABLE.']);await cutRun('grab',62);S.hp=stats('av').mhp;WT.fin=null;PARTS.length=0;startEncounter(['responsable'],{boss:'responsable'})}}
 
+// =================================================================== EXT11: equipment shown on the character, redesigned pause menu and equipment screen
+// ------------------------------------------------ equipped weapon / armour drawn on the sprite (look.ew / look.ea)
+{const _lk11=lookKey;lookKey=function(l){return _lk11(l)+'.'+(l.ew||'')+'.'+(l.ea||'')}}
+const ARM_PLATE=['cota','disipador','chalecofw','carcasa'],ARM_CAPE=['manto','capavip','gabardina','impermeable','capucha','vigia'];
+const WPN_BLADE={espada:['#e0e4f0',9],dagas:['#d8dce8',5],rama:['#7a5028',7],batuta:['#f4f4f4',7],pluma:['#2a3a8a',5],bate:['#b08a50',8],latigo:['#40e0ff',8]},WPN_POLE={baculo:['#7a5028','#40c0ff'],martillo:['#7a5028','#7a7e8a'],mazo8:['#7a5028','#9a9aa6'],paraguas:['#6a4424','#4080d0']};
+function armorOv(g,id,dir,fr){if(!id||id==='sueter'||!ARMORS[id])return;const c=ICOL[id]||'#8090a0',side=dir===2,up=dir===1,down=dir===0,tx=side?8:7,tw=side?8:10,ty=15,th=9,cl=shd(c,.25),cd=shd(c,-.3),st=fr===1?1:fr===3?-1:0;
+  if(ARM_PLATE.includes(id)){pr(g,tx,ty,tw,th,c);pr(g,tx,ty,tw,1,cl);pr(g,tx+tw-1,ty,1,th,cd);pr(g,tx,ty+6,tw,1,cd);if(down){pr(g,11,ty+1,2,4,cl);pr(g,5,15+st,2,3,cl);pr(g,17,15-st,2,3,cl)}else if(up){pr(g,5,15+st,2,3,cl);pr(g,17,15-st,2,3,cl);pr(g,11,ty+2,2,5,cd)}else pr(g,10+st,15,4,3,cl);return}
+  if(ARM_CAPE.includes(id)){if(up){pr(g,6,14,12,13,c);pr(g,7,14,10,1,cl);pr(g,6,26,12,1,cd);pr(g,11,16,1,9,cd)}else if(side){pr(g,14,15,4,11,c);pr(g,17,15,1,11,cd);pr(g,tx,ty,tw,2,c)}else{pr(g,5,15,2,11,cd);pr(g,17,15,2,11,cd);pr(g,tx,ty,tw,2,c);pr(g,tx,ty,tw,1,cl);pr(g,11,16,2,1,'#f0d050')}
+    if(id==='capucha'&&!up){pr(g,7,3,10,2,c);pr(g,7,3,10,1,cl);pr(g,side?16:5,5,1,8,c);if(!side)pr(g,18,5,1,8,c)}else if(id==='capucha'){pe(g,12,8,7,6,c);pr(g,6,13,12,2,cd)}return}
+  pr(g,tx,ty,tw,th,c);pr(g,tx,ty,1,th,cl);pr(g,tx+tw-1,ty,1,th,cd);if(id==='chaleco'&&down){pr(g,10,ty,4,th,cd);pr(g,11,ty,2,th,'#f0f0f0')}else if(down)pr(g,11,ty+3,2,2,cl);
+  if(id!=='chaleco'){if(side)pr(g,11+st,16,2,5,c);else{pr(g,5,16+st,2,5,c);pr(g,17,16-st,2,5,c)}}}
+function weaponOv(g,id,dir,fr){if(!id||!WEAPONS[id])return;const side=dir===2,up=dir===1,st=fr===1?1:fr===3?-1:0,hx=side?11+st:up?5:17,hy=side?21:up?21+st:21-st,dx=up?-1:1;
+  const ln=(a,b,c2,d,col,w)=>{g.strokeStyle=col;g.lineWidth=w||1.5;g.beginPath();g.moveTo(a+.5,b+.5);g.lineTo(c2+.5,d+.5);g.stroke()};
+  if(WPN_BLADE[id]){const[c,len]=WPN_BLADE[id];ln(hx+(side?1:0),hy,hx+dx*len*.5,hy-len,c,id==='bate'?2.5:1.6);if(id==='espada'){ln(hx-1,hy-2,hx+2,hy-1,'#c8a040',1.5)}if(id==='dagas'&&!side)ln(up?17:5,hy,(up?17:5)-dx*2,hy-5,c,1.6);if(id==='rama')pr(g,Math.round(hx+dx*3.5),hy-9,2,2,'#58a850');if(id==='latigo'){ln(hx+dx*4,hy-8,hx+dx*7,hy-4,c,1);ln(hx+dx*7,hy-4,hx+dx*5,hy-1,c,1)}return}
+  if(WPN_POLE[id]){const[c,h]=WPN_POLE[id],x=hx+(side?1:up?0:1);pr(g,x,hy-11,1,15,c);if(id==='baculo'){pe(g,x+.5,hy-13,2,2,h);pr(g,x,hy-14,1,1,'#fff')}else if(id==='paraguas'){pr(g,x-3,hy-13,7,2,h);pr(g,x-2,hy-14,5,1,h);pr(g,x-4,hy-11,1,1,h);pr(g,x+4,hy-11,1,1,h)}else{pr(g,x-2,hy-14,5,4,h);pr(g,x-2,hy-14,5,1,shd(h,.3))}return}
+  if(id==='libro'){pr(g,hx-1,hy-3,4,5,'#6a3a9a');pr(g,hx,hy-2,2,3,'#8a50c0');pr(g,hx+2,hy-3,1,5,'#e8e0d0');return}
+  if(id==='arco'){const cx=hx+dx*-1,cy=hy-3;g.strokeStyle='#8a5a28';g.lineWidth=1.6;g.beginPath();if(dx>0)g.arc(cx,cy,6,-1.2,1.2);else g.arc(cx,cy,6,Math.PI-1.2,Math.PI+1.2);g.stroke();pr(g,Math.round(cx+dx*2),cy-5,1,11,'#e8e8e8');return}
+  if(id==='guantes'){const c='#9a6a3a';if(side)pr(g,11+st,20,3,3,c);else{pr(g,4,20+st,3,3,c);pr(g,17,20-st,3,3,c)}return}
+  if(id==='monopatin'){if(up){pr(g,8,15,8,10,'#c84040');pr(g,8,15,8,1,'#e86060');pr(g,9,17,2,2,'#333');pr(g,13,17,2,2,'#333');pr(g,9,22,2,2,'#333');pr(g,13,22,2,2,'#333')}else if(side){pr(g,15,13,2,11,'#c84040');pr(g,17,15,1,2,'#333');pr(g,17,21,1,2,'#333')}else{pr(g,3,12,2,4,'#c84040');pr(g,19,12,2,4,'#c84040')}return}
+  ln(hx,hy,hx+dx*4,hy-8,'#e0e4f0',1.6)}
+{const _dc11=drawChar;drawChar=function(g,L,dir,fr){if(L.ew==='monopatin'&&dir!==1)weaponOv(g,L.ew,dir,fr);_dc11(g,L,dir,fr);if(L.ea)armorOv(g,L.ea,dir,fr);if(L.ew&&!(L.ew==='monopatin'&&dir!==1))weaponOv(g,L.ew,dir,fr)}}
+function syncLook(){if(!S||!S.look||!S.lo)return;const w=S.vw===0?0:S.lo.av.w,a=S.va===0?0:S.lo.av.a;if((S.look.ew||0)!==(w||0)||(S.look.ea||0)!==(a||0)){S.look.ew=w||0;S.look.ea=a||0}}
+{const _wu11=worldUpdate;worldUpdate=function(){if(FR%20===0)syncLook();_wu11()}}
+// ------------------------------------------------ nicer panels
+{const _bw11=boxW;boxW=function(x,y,w,h){if(GFX()===1)return _bw11(x,y,w,h);R(x,y,w,h,'#07070f');const g=X.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'rgba(90,110,220,.20)');g.addColorStop(.5,'rgba(40,40,90,.04)');g.addColorStop(1,'rgba(0,0,0,0)');X.fillStyle=g;X.fillRect(x,y,w,h);
+  RO(x,y,w,h,'#fff',2);X.globalAlpha=.35;RO(x+2.5,y+2.5,w-5,h-5,'#8090ff',1);X.globalAlpha=1;for(const[a,b]of[[x+1,y+1],[x+w-3,y+1],[x+1,y+h-3],[x+w-3,y+h-3]])R(a,b,2,2,'#ffe040')}}
+function bar11(x,y,w,h,q,c,bg){R(x-1,y-1,w+2,h+2,'#000');R(x,y,w,h,bg||'#2a1a1a');R(x,y,Math.max(0,Math.min(1,q))*w,h,c);R(x,y,Math.max(0,Math.min(1,q))*w,1,'rgba(255,255,255,.35)')}
+function menuIcon(k,x,y){const P=(a,b,w,h,c)=>R(x+a,y+b,w,h,c);
+  if(k==='OBJETOS')return itemIcon('i','bellota',x,y,1);if(k==='EQUIPO')return itemIcon('w','espada',x,y,1);
+  if(k==='ESTADO'){soulShape(x+4,y+4,ROLES[S.role].soul,1);RO(x+1,y+1,14,14,'#8090ff',1);return}
+  if(k==='MAPA'){P(2,3,12,10,'#d8c8a0');P(6,3,1,10,'#a89870');P(10,3,1,10,'#a89870');P(3,6,2,1,'#c04040');P(8,9,2,1,'#c04040');P(11,5,2,2,'#4080d0');return}
+  if(k==='GRUPO'){ell(x+5,y+6,2.5,2.5,'#8cf');P(2,9,6,5,'#8cf');ell(x+11,y+6,2.5,2.5,'#ffe040');P(8,9,6,5,'#ffe040');return}
+  if(k==='AJUSTES'){X.save();X.translate(x+8,y+8);X.rotate(FR*.02);X.fillStyle='#c8ccd8';for(let i=0;i<8;i++){X.rotate(Math.PI/4);X.fillRect(-1.5,-7,3,4)}X.beginPath();X.arc(0,0,4.5,0,7);X.fill();X.fillStyle='#07070f';X.beginPath();X.arc(0,0,2,0,7);X.fill();X.restore();return}
+  if(k==='BATALLA'){X.strokeStyle='#e0e4f0';X.lineWidth=2;X.beginPath();X.moveTo(x+3,y+13);X.lineTo(x+13,y+3);X.moveTo(x+13,y+13);X.lineTo(x+3,y+3);X.stroke();P(2,12,3,2,'#c8a040');P(11,12,3,2,'#c8a040');return}
+  P(4,2,8,13,'#6a4424');P(5,3,6,11,'#8a5a2a');P(9,8,1,2,'#f0d050')}
+// ------------------------------------------------ pause menu
+const PAUSE_D={OBJETOS:()=>S.items.length+'/12 objetos',ESTADO:()=>'Nivel, alma y habilidades',EQUIPO:()=>WEAPONS[S.lo.av.w].n+' · '+ARMORS[S.lo.av.a].n,MAPA:()=>ROOM.n,GRUPO:()=>NET.party?'Código '+String(NET.partyCode||'').toUpperCase():'Jugar con amigos',AJUSTES:()=>'Sonido y gráficos',BATALLA:()=>'Repetir cualquier jefe',TÍTULO:()=>'Guardar y cambiar de personaje'};
+function pauseScreen(items,sel){return new Promise(res=>{const p={sel,t:0,
+  update(){this.t++;const n=items.length;if(P_('up')){this.sel=(this.sel+n-1)%n;AU.sfx('blip')}if(P_('down')){this.sel=(this.sel+1)%n;AU.sfx('blip')}if(P_('z')){AU.sfx('ok');UI.pop(this);res(this.sel)}else if(P_('x')||P_('c')){UI.pop(this);res(-1)}},
+  draw(){const st=stats('av'),r=ROLES[S.role],t=this.t,a=Math.min(1,t/8);X.globalAlpha=.6*a;R(0,0,GW,GH,'#000');X.globalAlpha=1;const sl=Math.round((1-a)*-20);
+    // character card
+    boxW(8+sl,6,112,206);const g=X.createRadialGradient(64+sl,70,4,64+sl,70,60);g.addColorStop(0,'rgba(120,140,255,.35)');g.addColorStop(1,'rgba(0,0,0,0)');X.fillStyle=g;X.fillRect(12+sl,14,104,104);
+    X.globalAlpha=.4;ell(64+sl,106,26,6,'#000');X.globalAlpha=1;drawCharBig(S.look,64+sl,106,[0,0,0,3,1,2][Math.floor(t/50)%6],Math.floor(t/50)%6>2?Math.floor(t/8)%4:0,3);
+    T(S.nick,64+sl,112,'#fff',26,'center');T(ANIMALS[S.look.a].n+' · '+r.n,64+sl,127,'#ffe040',16,'center');if(S.sub)T(SUBS[S.sub].n,64+sl,137,'#8cf',16,'center');
+    T('NV '+S.lv,16+sl,150,'#fff',20);soulShape(98+sl,153,r.soul,1);
+    T('PV',16+sl,163,'#f88',16);bar11(34+sl,166,56,5,S.hp/st.mhp,'#ffe040');T(S.hp+'/'+st.mhp,112+sl,163,'#fff',14,'right');
+    T('EXP',16+sl,175,'#8cf',16);bar11(40+sl,178,50,5,S.lv>=LV_MAX?1:S.xp/xpNeed(S.lv),'#40c0ff','#1a1a2a');T(S.lv>=LV_MAX?'MAX':S.xp+'/'+xpNeed(S.lv),112+sl,175,'#fff',14,'right');
+    itemIcon('i','bellota',15+sl,187,.7);T(S.g+' bellotas',30+sl,187,'#fff',16);T('ATQ '+st.atk+'  DEF '+st.def+'  MAG '+st.mag,16+sl,199,'#aaa',14);
+    // options
+    const n=items.length,rh=Math.min(24,Math.floor(196/n)),ox=128-sl;boxW(ox,8,184,n*rh+10);
+    items.forEach((k,i)=>{const y=13+i*rh,on=i===this.sel;if(on){X.globalAlpha=.9;R(ox+4,y,176,rh-1,'#1c2460');X.globalAlpha=1;R(ox+4,y,2,rh-1,'#ffe040');R(ox+4,y,176,1,'rgba(255,255,255,.25)')}
+      menuIcon(k,ox+12+(on?Math.round(Math.sin(t*.2)*1):0),y+Math.floor((rh-16)/2));T(k,ox+34,y+(rh>20?0:-1),on?'#ffe040':'#fff',22);if(rh>20)T(PAUSE_D[k]?PAUSE_D[k]():'',ox+34,y+12,on?'#cfd4ff':'#777',14);if(on)heart(ox+168,y+Math.floor(rh/2)-3)});
+    boxW(8,216,304,18);T(ROOM.n,14,218,'#fff',16);T('Ruta '+(S.kills>0?'genocida':'pacifista'),GW/2,218,S.kills>0?'#f66':'#6f6',16,'center');T('Z elegir · X cerrar',306,218,'#888',16,'right')}};UI.push(p)})}
+openPause=async function(){AU.sfx('sel');let sel=0;
+  while(true){const items=['OBJETOS','ESTADO','EQUIPO','MAPA','GRUPO','AJUSTES'];if(S.fl.end)items.push('BATALLA');items.push('TÍTULO');
+    const i=await pauseScreen(items,sel);if(i<0)return;sel=i;const k=items[i];
+    if(k==='OBJETOS')await itemsMenu();else if(k==='ESTADO')await statusScreen();else if(k==='EQUIPO')await equipMenu();else if(k==='MAPA')await mapScreen();else if(k==='GRUPO')await partyMenu();else if(k==='AJUSTES')await settingsMenu();
+    else if(k==='BATALLA'){if(await arenaMenu())return}
+    else if(k==='TÍTULO'){const c=await choose('¿Guardar y volver al título para cambiar de personaje?',['Sí','No']);if(c===0){saveGame();setTimeout(()=>location.reload(),600);return}}}};
+// ------------------------------------------------ equipment screen with live preview
+function equipPreview(mode,lo,ov){const st=stats(mode),lk=Object.assign({},S.look,{ew:S.vw===0?0:lo.w,ea:S.va===0?0:lo.a},ov||{}),t=FR;boxW(8,8,104,150);
+  const g=X.createRadialGradient(60,62,4,60,62,56);g.addColorStop(0,mode==='av'?'rgba(120,140,255,.35)':'rgba(255,110,110,.35)');g.addColorStop(1,'rgba(0,0,0,0)');X.fillStyle=g;X.fillRect(12,12,96,96);
+  X.globalAlpha=.4;ell(60,100,24,5,'#000');X.globalAlpha=1;R(34,100,52,3,'#2a2a44');R(38,103,44,2,'#1a1a30');const ph=Math.floor(t/45)%4;drawCharBig(lk,60,100,[0,3,1,2][ph],Math.floor(t/9)%4,3);
+  T(mode==='av'?'AVENTURA':'DUELO',60,10,mode==='av'?'#8cf':'#f88',16,'center');
+  itemIcon('w',lk.ew||lo.w,14,108,.7);T(WEAPONS[ov&&ov.ew?ov.ew:lo.w].n.slice(0,15),28,108,'#fff',14);itemIcon('a',lk.ea||lo.a,14,119,.7);T(ARMORS[ov&&ov.ea?ov.ea:lo.a].n.slice(0,15),28,119,'#fff',14);
+  T('ATQ '+st.atk+'  DEF '+st.def,14,131,'#ffe040',16);T('MAG '+st.mag+'  PV '+st.mhp,14,142,'#ffe040',16)}
+equipMenu=async function(){let mode='av',sel=0;
+  while(true){const lo=S.lo[mode];syncLook();
+    const items=[{l:'Config: '+(mode==='av'?'AVENTURA':'DUELO'),c:'#8cf'},{l:WEAPONS[lo.w].n,ic:['w',lo.w]},{l:ARMORS[lo.a].n,ic:['a',lo.a]},{l:'Chips',r:ramUsed(lo)+'/'+ramMax()+' RAM'},{l:'Ver arma puesta',r:S.vw===0?'No':'Sí',rc:S.vw===0?'#f88':'#6f6'},{l:'Ver armadura puesta',r:S.va===0?'No':'Sí',rc:S.va===0?'#f88':'#6f6'},{l:'Copiar de '+(mode==='av'?'DUELO':'AVENTURA')}];
+    const i=await pickList('EQUIPO',items,{x:118,y:8,w:194,rows:7,sel,lr:(k,d)=>{if(k===0){mode=mode==='av'?'du':'av';return -2}},side:()=>equipPreview(mode,lo),
+      desc:k=>['AVENTURA se usa contra monstruos y jefes; DUELO, en PvP. ←→ cambia.','Arma: '+WEAPONS[lo.w].d,'Armadura: '+ARMORS[lo.a].d,'Los chips son mejoras. Cada uno ocupa RAM. Tu RAM crece con el nivel.','Si está en Sí, el arma equipada (config AVENTURA) se ve en tu personaje. Los demás jugadores también la ven.','Si está en Sí, la armadura reemplaza a la ropa que elegiste. En No, conservas tu ropa pero sigues teniendo la defensa.','Copia la otra configuración en esta.'][k]});
+    if(i===-2)continue;if(i<0)return;sel=i;
+    if(i===0)mode=mode==='av'?'du':'av';
+    else if(i===1){const j=await pickList('ARMAS',S.weap.map(w=>({l:WEAPONS[w].n,ic:['w',w],r:(lo.w===w?'✓':'')})),{x:118,y:8,w:194,rows:Math.min(9,S.weap.length),sel:Math.max(0,S.weap.indexOf(lo.w)),side:k=>equipPreview(mode,Object.assign({},lo,{w:S.weap[k]}),{ew:S.weap[k]}),desc:k=>{const w=WEAPONS[S.weap[k]];return w.d+' ATQ+'+w.atk+(w.mag?' MAG+'+w.mag:'')+' · Barra: '+w.bar.n+' golpe(s)'}});if(j>=0)lo.w=S.weap[j]}
+    else if(i===2){const j=await pickList('ARMADURAS',S.arm.map(a=>({l:ARMORS[a].n,ic:['a',a],r:(lo.a===a?'✓':'')})),{x:118,y:8,w:194,rows:Math.min(9,S.arm.length),sel:Math.max(0,S.arm.indexOf(lo.a)),side:k=>equipPreview(mode,Object.assign({},lo,{a:S.arm[k]}),{ea:S.arm[k]}),desc:k=>{const a=ARMORS[S.arm[k]];return a.d+' DEF+'+a.def}});if(j>=0)lo.a=S.arm[j]}
+    else if(i===3)await chipMenu(lo);
+    else if(i===4){S.vw=S.vw===0?1:0;AU.sfx('ok')}
+    else if(i===5){S.va=S.va===0?1:0;AU.sfx('ok')}
+    else if(i===6){const o=S.lo[mode==='av'?'du':'av'];S.lo[mode]=JSON.parse(JSON.stringify(o));AU.sfx('ok')}
+    syncLook();saveGame()}};
+// ------------------------------------------------ interacting works from any side: probe a strip in front of the player, not a single point
+{const _oap=objAtPoint;objAtPoint=function(px,py){const hit=_oap(px,py);if(hit)return hit;const v=DIRV[PL.d];let a,b,c,d;
+  if(v[1]){a=PL.x-6;c=PL.x+6;if(v[1]>0){b=PL.y+1;d=PL.y+17}else{b=PL.y-19;d=PL.y-2}}else{b=PL.y-9;d=PL.y+4;if(v[0]>0){a=PL.x+3;c=PL.x+19}else{a=PL.x-20;c=PL.x-4}}
+  let best=null,bd=1e9;for(const o of OBJS){if(o.gone||o.k==='house')continue;let[r0,r1,r2,r3]=objRect(o);if(o.k==='npc'||o.k==='pet'){r0-=3;r1-=10;r2+=6;r3+=12}
+    if(r0>=c||r0+r2<=a||r1>=d||r1+r3<=b)continue;let solid=1;try{solid=isSolidObj(o)?1:0}catch(e){}const cx=Math.max(r0,Math.min(PL.x,r0+r2)),cy=Math.max(r1,Math.min(PL.y,r1+r3)),dist=Math.hypot(cx-PL.x,cy-PL.y)+(solid?0:40);if(dist<bd){bd=dist;best=o}}
+  return best}}
+
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
 const TI={sel:0,t:0,loading:true};
