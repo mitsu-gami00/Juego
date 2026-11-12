@@ -4532,7 +4532,7 @@ Object.assign(BULDRAW2,{spin:(b,x,y)=>{ell(x,y,3.5,3.5,'#2060d0');ell(x,y,2,2,'#
  cookieb:(b,x,y)=>{ell(x,y,5.5,5.5,'#8a5a28');ell(x,y,4.5,4.5,'#d8a050');R(x-2,y-2,2,2,'#4a2a10');R(x+1,y+1,2,2,'#4a2a10');R(x-1,y-1,2,2,'#fff')},crumb:(b,x,y)=>{R(x-2,y-2,4,4,'#d8a050');R(x-1,y-1,2,2,'#8a5a28')}});
 // ------------------------------------------------ graphics pass (AJUSTES → Gráficos: Mejorado / Clásico / CRT)
 {const _rl7=renderRoomLayer;renderRoomLayer=function(){_rl7();if(GFX()===1)return;const r=ROOM,g=RLAYER.getContext('2d'),Z=ZONES[r.zone]||{},rr=mulberry(hash(r.id)+7),zn=r.zone;
-  try{tiles8(g,r);tiles12(g,r)}catch(e){}
+  try{tiles8(g,r);tiles12(g,r);tiles13(g,r)}catch(e){}
   const isF=c=>c==='.'||c===','||c==='f'||c==='p';
   for(let y=0;y<r.h;y++)for(let x=0;x<r.w;x++){const c=r.map[y][x],px=x*16,py=y*16;
     if(isF(c)){
@@ -5127,7 +5127,7 @@ function pauseScreen(items,sel){return new Promise(res=>{const p={sel,t:0,
     boxW(8+sl,6,112,206);const g=X.createRadialGradient(64+sl,70,4,64+sl,70,60);g.addColorStop(0,'rgba(120,140,255,.35)');g.addColorStop(1,'rgba(0,0,0,0)');X.fillStyle=g;X.fillRect(12+sl,14,104,104);
     X.globalAlpha=.4;ell(64+sl,106,26,6,'#000');X.globalAlpha=1;drawCharBig(S.look,64+sl,106,[0,0,0,3,1,2][Math.floor(t/50)%6],Math.floor(t/50)%6>2?Math.floor(t/8)%4:0,3);
     T(S.nick,64+sl,112,'#fff',26,'center');T(ANIMALS[S.look.a].n+' · '+r.n,64+sl,127,'#ffe040',16,'center');if(S.sub)T(SUBS[S.sub].n,64+sl,137,'#8cf',16,'center');
-    T('NV '+S.lv,16+sl,150,'#fff',20);soulShape(98+sl,153,r.soul,1);
+    T('NV '+S.lv,16+sl,150,'#fff',20);toolRow(48+sl,150);soulShape(98+sl,153,r.soul,1);
     T('PV',16+sl,163,'#f88',16);bar11(34+sl,166,56,5,S.hp/st.mhp,'#ffe040');T(S.hp+'/'+st.mhp,112+sl,163,'#fff',14,'right');
     T('EXP',16+sl,175,'#8cf',16);bar11(40+sl,178,50,5,S.lv>=LV_MAX?1:S.xp/xpNeed(S.lv),'#40c0ff','#1a1a2a');T(S.lv>=LV_MAX?'MAX':S.xp+'/'+xpNeed(S.lv),112+sl,175,'#fff',14,'right');
     itemIcon('i','bellota',15+sl,187,.7);T(S.g+' bellotas',30+sl,187,'#fff',16);T('ATQ '+st.atk+'  DEF '+st.def+'  MAG '+st.mag,16+sl,199,'#aaa',14);
@@ -5256,6 +5256,93 @@ function bestiaryScreen(){return new Promise(res=>{const ids=bstIds(),p={sel:0,t
   const m=memCount();if(WT.memc==null)WT.memc=m;if(m>WT.memc){WT.memc=m;UI.toast('Recuerdo '+m+'/'+MEMS.length,'#aef')}
   if(m>=MEMS.length&&!S.fl.memall){S.fl.memall=1;giveThing(['c','cajamusica']);saveGame()}
   if(bstCount()>=30&&!S.fl.bstall){S.fl.bstall=1;giveThing(['c','enciclopedia']);saveGame()}}}
+
+// =================================================================== EXT13: tall border trees, exploration tools (farol, pico, gancho), root cave, fishing, pet companion
+// ------------------------------------------------ tall trees (still solid tiles; drawn as y-sorted sprites so you can walk behind the canopy)
+let TREECV=null;
+function treeSprites(){if(TREECV)return TREECV;TREECV=[];for(let v=0;v<4;v++){const c=document.createElement('canvas');c.width=30;c.height=48;const g=c.getContext('2d'),r=mulberry(900+v),dk=v===3,P=(a,b,w,h,col)=>pr(g,a,b,w,h,col),E=(x,y,rx,ry,col)=>pe(g,x,y,rx,ry,col);
+    const C=dk?['#0b1e12','#10301a','#163c22','#1c4a2a']:['#10301a','#1a4a28','#266238','#3a8a4c'],h=dk?0:v*2;
+    P(13,30,4,16,'#3a2618');P(13,30,1,16,'#5a402a');P(16,30,1,16,'#22140c');P(11,44,2,2,'#3a2618');P(17,44,2,2,'#2a1a10');
+    E(15,24-h,13,13,C[0]);E(15,20-h,12,12,C[1]);E(9,27-h,7,6,C[1]);E(21,27-h,7,6,C[0]);E(13,15-h,9,8,C[2]);E(11,11-h,5,4,C[3]);E(19,19-h,5,4,C[2]);
+    for(let i=0;i<12;i++){const a=r()*6.283,d=4+r()*8;P(Math.round(15+Math.cos(a)*d),Math.round(20-h+Math.sin(a)*d),2,1,r()<.5?C[3]:C[0])}
+    for(let i=0;i<5;i++)P(4+i*5,33-h+((i*3)%3),3,2,C[0]);TREECV.push(c)}return TREECV}
+{const _er13=enterRoom;enterRoom=function(){const res=_er13.apply(this,arguments);try{if(GFX()!==1&&ROOM&&ROOM.zone==='bosque'){const fl=c=>c!=='T'&&c!=='#'&&c!==' ';
+    for(let y=0;y<ROOM.h;y++)for(let x=0;x<ROOM.w;x++)if(ROOM.map[y][x]==='T'){let edge=false;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)if(fl(tileAt(x+a,y+b)))edge=true;OBJS.push({k:'ttree',x,y,px:x*16+8,py:y*16+15,v:edge?(x*7+y*13)%3:3,i:OBJS.length})}}
+  if(S.pet&&ROOM)OBJS.push({k:'mypet',x:0,y:0,px:PL.x,py:PL.y,i:OBJS.length});WT.trail=[];WT.zip=null}catch(e){}return res}}
+{const _or13=objRect;objRect=function(o){if(o.k==='ttree'||o.k==='mypet')return[-9999,-9999,1,1];if(o.k==='crack'||o.k==='hook'||o.k==='fish')return[o.x*16,o.y*16,16,16];return _or13(o)}}
+{const _is13=isSolidObj;isSolidObj=function(o){if(o.k==='ttree'||o.k==='mypet')return false;if(o.k==='crack')return!S.fl['ck:'+o.id];if(o.k==='hook'||o.k==='fish')return true;return _is13(o)}}
+{const _sy13=sortY;sortY=function(o){if(o.k==='ttree')return o.y*16+15;if(o.k==='mypet')return o.py;if(o.k==='crack'||o.k==='hook'||o.k==='fish')return o.y*16+14;return _sy13(o)}}
+// ------------------------------------------------ tools
+const TOOLS={farol:{n:'Farol',d:'Herramienta: ilumina cuevas donde no se ve nada.'},pico:{n:'Pico de vigía',d:'Herramienta: rompe rocas agrietadas.'},gancho:{n:'Gancho',d:'Herramienta: te lleva de un poste a otro sobre un abismo.'},cana:{n:'Caña de pescar',d:'Herramienta: pesca en el estanque de la aldea.'}};
+Object.assign(ITEMS,{pez:{n:'Mojarra',h:20,d:'Cura 20 PV. Recién pescada.',p:14},trucha:{n:'Trucha de arroyo',h:40,d:'Cura 40 PV. Brilla como una moneda.',p:30},pezdorado:{n:'Pez dorado',h:80,d:'Cura 80 PV. Casi da pena.',p:90},bota:{n:'Bota vieja',h:1,d:'Cura 1 PV. No preguntes cómo.',p:2}});
+Object.assign(WEAPONS,{garfio:{n:'Garfio de raíz',atk:12,mag:4,bar:{n:2,sp:1.25},d:'Dos golpes. Tallado de una raíz que nunca se pudrió.',p:0}});Object.assign(ARMORS,{corteza:{n:'Peto de corteza',def:10,d:'Corteza viva. Cruje cuando respiras.',p:0}});ICOL.corteza='#6a4a2a';WPN_BLADE.garfio=['#8a6a3a',8];
+{const _gd13=getDef;getDef=function(q){return q.t==='t'?TOOLS[q.id]:_gd13(q)}}
+{const _ic13=iconDraw;iconDraw=function(t,id,x,y){const P=(a,b,w,h,c)=>R(x+a,y+b,w,h,c);
+  if(t==='t'){if(id==='farol'){P(6,1,4,2,'#6a5a3a');P(4,3,8,2,'#8a6a2a');P(5,5,6,7,'#ffe890');P(7,7,2,3,'#ff9020');P(4,5,1,7,'#6a5a3a');P(11,5,1,7,'#6a5a3a');P(4,12,8,2,'#8a6a2a')}
+    else if(id==='pico'){X.strokeStyle='#7a5028';X.lineWidth=2;X.beginPath();X.moveTo(x+3,y+14);X.lineTo(x+11,y+4);X.stroke();X.strokeStyle='#b8bcc8';X.lineWidth=2.5;X.beginPath();X.moveTo(x+5,y+3);X.quadraticCurveTo(x+12,y+1,x+14,y+8);X.stroke()}
+    else if(id==='gancho'){X.strokeStyle='#c8ccd8';X.lineWidth=2;X.beginPath();X.arc(x+9,y+6,4,-.5,Math.PI);X.stroke();X.strokeStyle='#a08040';X.lineWidth=1.5;X.beginPath();X.moveTo(x+5,y+6);X.lineTo(x+3,y+14);X.stroke();P(12,2,2,2,'#c8ccd8')}
+    else{X.strokeStyle='#8a5a28';X.lineWidth=1.5;X.beginPath();X.moveTo(x+2,y+14);X.lineTo(x+13,y+2);X.stroke();X.strokeStyle='#e8e8e8';X.lineWidth=1;X.beginPath();X.moveTo(x+13,y+2);X.lineTo(x+13,y+10);X.stroke();P(12,10,2,2,'#e04040')}return}
+  if(t==='i'&&(id==='pez'||id==='trucha'||id==='pezdorado')){const c={pez:'#80a0c0',trucha:'#c0b890',pezdorado:'#f0b020'}[id];ell(x+7,y+8,5,3,c);X.fillStyle=c;X.beginPath();X.moveTo(x+11,y+8);X.lineTo(x+15,y+4);X.lineTo(x+15,y+12);X.fill();P(4,7,1,1,'#101018');P(6,6,4,1,'rgba(255,255,255,.5)');return}
+  if(t==='i'&&id==='bota'){P(5,2,5,9,'#5a4028');P(5,10,9,4,'#5a4028');P(5,13,9,1,'#2a1a10');P(6,3,3,1,'#8a6a48');return}
+  _ic13(t,id,x,y)}}
+function giveTool(id){if(S.fl[id])return;S.fl[id]=1;GETQ.push({t:'t',id,f:0});saveGame()}
+// ------------------------------------------------ root cave: needs the lantern to enter, the pick and the hook to finish
+RM('gruta',{n:'Gruta de las raíces viejas',zone:'bosque',mus:'torre',dark:1,pad:'#',map:['########################','#......#.......#... ...#','#......#.......#... ...#','#......#.......#... ...#','#......#.......#... ...#','#......#.......#... ...#','#...............'+'... ...#','#......#.......#... ...#','#......#.......#... ...#','#......#.......#... ...#','#......#.......#... ...#','#......#.......#... ...#','########################'],ex:[],
+  obj:[{k:'portal',x:1,y:10,to:'ladera',at:[12,10.5],lbl:'Salida',c:'#80c060'},{k:'chest',x:4,y:2,id:'gruta1',give:['i','dorada'],t:'¡Obtienes una BELLOTA DORADA!'},{k:'sign',x:5,y:5,t:['Rasguños en la piedra: "El que pica, pasa. El que cuelga, cruza."']},
+   {k:'crack',x:7,y:6,id:'gruta'},{k:'chest',x:11,y:2,id:'gruta2',give:['a','corteza'],t:'¡Obtienes el PETO DE CORTEZA! (armadura, DEF+10)'},{k:'memory',x:11,y:10,id:'gruta',t:['Dos nombres tallados en una raíz: el tuyo y "CHESTER".','Debajo, con otra letra, más reciente: "Volví a mirar. Sigue aquí."']},
+   {k:'hook',x:18,y:5,to:[20,6]},{k:'hook',x:20,y:5,to:[18,6]},{k:'chest',x:21,y:2,id:'gruta3',give:['w','garfio'],t:'¡Obtienes el GARFIO DE RAÍZ! (arma)'}]});
+ROOMS.ladera.obj.push({k:'portal',x:12,y:12,to:'gruta',at:[2,9.5],cond:'fl:farol',lbl:'Boca de la gruta',c:'#80c060',lock:'Un agujero entre las raíces. Dentro no se ve absolutamente nada. Necesitarías una luz.'});
+MEMS.push('gruta');CORR.gruta='ladera';
+// ------------------------------------------------ fishing spot and pet keeper in the village
+ROOMS.aldea.obj.push({k:'fish',x:24,y:9},{k:'tnpc',x:38,y:11,lk:LK('ciervo','Overol',6,'Gorro de lana',null,0),who:'Lía',t:['Lía: Cuido a las criaturas que ya no quieren pelear.']});
+const PETFX=k=>[['atk',2,'+2 ATQ'],['def',2,'+2 DEF'],['mag',3,'+3 MAG'],['mhp',12,'+12 PV']][hash(k)%4];
+{const _s13=stats;stats=function(m){const s=_s13(m);if(S.pet&&EN[S.pet]){const f=PETFX(S.pet);s[f[0]]+=f[1]}return s}}
+function petSync(){const i=OBJS.findIndex(o=>o.k==='mypet');if(S.pet&&i<0)OBJS.push({k:'mypet',x:0,y:0,px:PL.x,py:PL.y,i:OBJS.length});if(!S.pet&&i>=0)OBJS.splice(i,1)}
+async function petMenu(){const B=S.bst||{},ok=Object.keys(EN).filter(k=>B[k]&&B[k][0]>=3&&k!=='dummy');
+  if(S.kills>0){await say(['Lía te mira las manos. Luego mira a las criaturas detrás de ella.','Lía: No. A ti no te confío a ninguna.'],{who:'Lía'});return}
+  if(!ok.length){await say(['Lía: Cuido a las criaturas que ya no quieren pelear.','Lía: Si perdonas tres veces a la misma clase de criatura, alguna querrá irse contigo. Vuelve entonces.'],{who:'Lía'});return}
+  await say(['Lía: Estas ya te conocen. ¿Quieres que alguna te acompañe? Solo puede ir una a la vez.'],{who:'Lía'});
+  const items=ok.map(k=>({l:EN[k].n,r:PETFX(k)[2],rc:S.pet===k?'#6f6':'#aaa',c:S.pet===k?'#6f6':null}));if(S.pet)items.push({l:'Dejar descansar a '+EN[S.pet].n});
+  const j=await pickList('COMPAÑERO',items,{x:60,y:20,w:200,rows:Math.min(10,items.length),desc:k=>k<ok.length?'Te sigue por el mundo. Mientras va contigo: '+PETFX(ok[k])[2]+'.':'Se queda con Lía.'});if(j<0)return;
+  if(j>=ok.length){S.pet=null;await say(['Lía: Aquí va a estar bien.'],{who:'Lía'})}else{S.pet=ok[j];AU.sfx('heal');await say(['¡'+EN[S.pet].n+' se une a tu viaje! ('+PETFX(S.pet)[2]+')'])}petSync();saveGame()}
+// fishing
+function fishing(bx,by){return new Promise(res=>{const p={t:0,ph:0,wait:70+Math.floor(Math.random()*190),msg:'',
+  update(){this.t++;if(this.ph===0){if(P_('x')){UI.pop(this);res(null);return}if(this.t>30&&P_('z')){this.ph=3;this.msg='Recogiste demasiado pronto.';this.t=0;AU.sfx('no')}else if(this.t>=this.wait){this.ph=1;this.t=0;AU.sfx('enc')}}
+    else if(this.ph===1){if(P_('z')){const r=Math.random(),id=r<.5?'pez':r<.72?'bota':r<.94?'trucha':'pezdorado';this.ph=2;this.t=0;this.got=id;AU.sfx('ok')}else if(this.t>30){this.ph=3;this.t=0;this.msg='Se escapó...';AU.sfx('no')}}
+    else if(this.t>(this.ph===2?40:50)||(this.t>12&&P_('z'))){UI.pop(this);res(this.ph===2?this.got:null)}},
+  draw(){const cx=CAMX_world||0,cy=CAMY_world||0,px=PL.x-cx,py=PL.y-cy-16,x=bx-cx,y=by-cy,t=this.t,bob=this.ph===1?Math.sin(t*1.2)*2+2:Math.sin(FR*.08)*1;
+    const k=this.ph===0?Math.min(1,t/24):1,ex=lerp(px,x,k),ey=lerp(py,y,k)-Math.sin(k*Math.PI)*22+(k>=1?bob:0);X.strokeStyle='#e8e8e8';X.lineWidth=1;X.beginPath();X.moveTo(px+6,py-8);X.quadraticCurveTo((px+ex)/2,Math.min(py,ey)-14,ex,ey);X.stroke();X.strokeStyle='#8a5a28';X.lineWidth=1.5;X.beginPath();X.moveTo(px,py+4);X.lineTo(px+6,py-8);X.stroke();
+    if(this.ph===2){itemIcon('i',this.got,ex-8,ey-10-Math.min(14,t),1)}else{R(ex-1,ey-2,3,2,'#e04040');R(ex-1,ey,3,2,'#fff')}
+    if(k>=1&&this.ph<2){X.globalAlpha=.5;X.strokeStyle='#d8f0ff';X.beginPath();X.ellipse(x,y+2,3+((FR*.3)%8),1.5+((FR*.3)%8)*.4,0,0,7);X.stroke();X.globalAlpha=1}
+    if(this.ph===1){T('!',ex,ey-22,'#ffe040',34,'center')}
+    boxW(36,GH-34,248,24);T(this.ph===0?'Esperando... (Z cuando pique · X dejar)':this.ph===1?'¡PICA! ¡Pulsa Z!':this.ph===2?'¡Sacaste: '+ITEMS[this.got].n+'!':this.msg,160,GH-29,this.ph===1?'#ffe040':'#fff',18,'center')}};UI.push(p)})}
+// ------------------------------------------------ interactions
+{const _int13=interact;interact=async function(){const[fx,fy]=facingPoint();const o=NET.playerNear(fx,fy)?null:objAtPoint(fx,fy);
+  if(o&&o.k==='crack'){AU.sfx('sel');if(!S.fl.pico){await say(['Una roca agrietada tapa el paso. Con algo pesado y con punta, cedería.']);return}S.fl['ck:'+o.id]=1;UI.shake=10;AU.sfx('dust');AU.sfx('crit');saveGame();await say(['Golpeas con el pico. La roca se parte en dos y el paso queda libre.']);return}
+  if(o&&o.k==='hook'){AU.sfx('sel');if(!S.fl.gancho){await say(['Un poste con una argolla de hierro. Al otro lado del abismo hay otro igual.','Si tuvieras algo que lanzar y enganchar...']);return}AU.sfx('shot');WT.zip={x0:PL.x,y0:PL.y,x1:o.to[0]*16+8,y1:o.to[1]*16+8,t:0,hx:o.x*16+8,hy:o.y*16+4};return}
+  if(o&&o.k==='fish'){AU.sfx('sel');if(!S.fl.cana){await say(['Hay una caña de pescar apoyada en el poste, con una nota:','"Es de todos. Devuélvela cuando acabes. —Kiko"']);giveTool('cana');return}
+    if(S.items.length>=12){await say(['Llevas la mochila llena. No tendrías dónde guardar lo que saques.']);return}
+    const id=await fishing(26.5*16,8.9*16);if(id){giveThing(['i',id]);S.fl.fishn=(S.fl.fishn||0)+1;if(id==='pezdorado')UI.toast('¡Un pez dorado!','#ffe040');saveGame()}return}
+  if(o&&o.k==='tnpc'&&o.who==='Lía'){AU.sfx('sel');await petMenu();return}
+  if(o&&o.k==='tnpc'&&o.who==='Doña Mora'&&!S.fl.farol&&!(S.kills>=8)){AU.sfx('sel');if(S.fl['hd:hut1']&&S.fl['hd:hut2']&&S.fl['hd:hut3']){await say(['Doña Mora: ¡Encontraste mis tres escondites! Tienes buen ojo, criatura.','Doña Mora: Toma. Este farol era de mi marido. Hay una gruta en la ladera donde no entra ni un rayo de sol.'],{who:'Doña Mora',look:o.lk});giveTool('farol')}
+    else await say(['Doña Mora: En esta casa hay tres cosas escondidas: detrás de algo, debajo de algo y dentro de algo.','Doña Mora: Si das con las tres, te presto una cosa que brilla.'],{who:'Doña Mora',look:o.lk});return}
+  if(o&&o.k==='tnpc'&&o.who==='Vigía'&&!S.fl.pico&&S.fl['hd:tow2']&&!(S.kills>=8)){AU.sfx('sel');await say(['Vigía: ¿Abriste el baúl? Entonces lo de dentro es tuyo. Y esto también.','Vigía: El pico del vigía viejo. Rompe roca agrietada como si fuera pan duro.'],{who:'Vigía',look:o.lk});giveTool('pico');return}
+  if(o&&o.k==='tnpc'&&o.who==='Herrero'&&!S.fl.gancho&&S.fl['hd:wor2']&&!(S.kills>=8)){AU.sfx('sel');await say(['Herrero: ¡Abriste la caja! Con ese engranaje se me ocurrió algo.','Herrero: Un gancho con cuerda. Te lo forjo por 100 bellotas.'],{who:'Herrero',look:o.lk});const c=await choose('¿Pagar 100 bellotas? (Tienes '+S.g+')',['Sí','No']);
+    if(c===0){if(S.g<100){AU.sfx('no');await say(['Herrero: Te faltan bellotas. Aquí estaré.'],{who:'Herrero',look:o.lk})}else{S.g-=100;AU.sfx('hit');await say(['¡CLANG! ¡CLANG! ¡Tsss!'],{who:'Herrero',look:o.lk});giveTool('gancho')}}return}
+  return _int13()}}
+{const _wu13=worldUpdate;worldUpdate=function(){if(WT.zip){const z=WT.zip;z.t++;const k=Math.min(1,z.t/16),e=k*k*(3-2*k);PL.x=lerp(z.x0,z.x1,e);PL.y=lerp(z.y0,z.y1,e);PL.mv=0;if(k>=1){WT.zip=null;AU.sfx('ok')}return}
+  _wu13();if(S.pet&&GS==='world'){WT.trail=WT.trail||[];const tr=WT.trail,l=tr[tr.length-1];if(!l||Math.hypot(l[0]-PL.x,l[1]-PL.y)>1)tr.push([PL.x,PL.y]);if(tr.length>18)tr.shift();const o=OBJS.find(q=>q.k==='mypet');if(o&&tr.length){const tg=tr[0];o.px+=(tg[0]-o.px)*.25;o.py+=(tg[1]-o.py)*.25;o.mv=Math.hypot(tg[0]-o.px,tg[1]-o.py)>.5}}}}
+{const _do13=drawObj;drawObj=function(o){const t=FR;
+  if(o.k==='ttree'){const cx=CAMX_world||0,cy=CAMY_world||0;if(o.px<cx-20||o.px>cx+GW+20||o.py<cy-4||o.py>cy+GH+50)return;const sw=o.v===3?0:Math.round(Math.sin(t*.02+o.x*1.7+o.y)*.7);X.drawImage(treeSprites()[o.v],o.px-15+sw,o.py+1-48);return}
+  if(o.k==='mypet'){if(!S.pet||!EN[S.pet])return;const hop=o.mv?-Math.abs(Math.sin(t*.3))*3:Math.sin(t*.08)*.8;shadow(o.px,o.py);try{withScale(o.px,o.py+hop,.34,()=>drawEnemy(EN[S.pet].spr,o.px,o.py+hop,t,{}))}catch(e){}return}
+  if(o.k==='crack'){if(S.fl['ck:'+o.id]){const x=o.x*16,y=o.y*16;R(x+1,y+12,4,3,'#5a5048');R(x+10,y+11,5,4,'#4a4038');return}const x=o.x*16,y=o.y*16;R(x,y,16,16,'#5a5048');R(x,y,16,2,'#7a7064');R(x+1,y+14,14,2,'#3a322c');X.strokeStyle='#1a1410';X.lineWidth=1;X.beginPath();X.moveTo(x+8,y);X.lineTo(x+6,y+5);X.lineTo(x+10,y+9);X.lineTo(x+7,y+16);X.moveTo(x+6,y+5);X.lineTo(x+2,y+8);X.moveTo(x+10,y+9);X.lineTo(x+14,y+11);X.stroke();return}
+  if(o.k==='hook'){const x=o.x*16,y=o.y*16;R(x+6,y+4,4,12,'#6a4a2a');R(x+6,y+4,1,12,'#8a6a48');R(x+4,y+14,8,2,'#4a3018');X.strokeStyle='#c8ccd8';X.lineWidth=1.5;X.beginPath();X.arc(x+8,y+3,3,0,7);X.stroke();if(S.fl.gancho&&t%60<30)R(x+7,y-3,2,2,'#ffe040');return}
+  if(o.k==='fish'){const x=o.x*16,y=o.y*16;R(x+6,y+3,3,13,'#6a4a2a');R(x+2,y+12,12,3,'#8a6a48');R(x+2,y+12,12,1,'#a88860');if(!S.fl.cana){X.strokeStyle='#8a5a28';X.lineWidth=1.5;X.beginPath();X.moveTo(x+9,y+12);X.lineTo(x+15,y-6);X.stroke()}T('~',x+12,y-2,'#80c0ff',14);return}
+  _do13(o)}}
+{const _dw13=drawWorld;drawWorld=function(){_dw13();if(WT.zip){const z=WT.zip,cx=CAMX_world||0,cy=CAMY_world||0;gx();X.strokeStyle='#d8dce8';X.lineWidth=1.5;X.beginPath();X.moveTo(PL.x-cx,PL.y-cy-12);X.lineTo(z.hx-cx,z.hy-cy);X.stroke()}}}
+function toolRow(x,y){let i=0;for(const k in TOOLS)if(S.fl[k]){itemIcon('t',k,x+i*13,y,.75);i++}}
+function tiles13(g,r){if(r.zone!=='bosque')return;const cv=voidPat('bosque'),pat=cv?g.createPattern(cv,'repeat'):null;for(let y=0;y<r.h;y++)for(let x=0;x<r.w;x++)if(r.map[y][x]==='T'){const px=x*16,py=y*16;if(pat){g.fillStyle=pat;g.fillRect(px,py,16,16)}else pr(g,px,py,16,16,'#0b1a0f');
+    const fl=c=>c!=='T'&&c!=='#'&&c!==' ';if(fl(tileAt(x,y+1))){for(let i=0;i<16;i+=3){const h=2+((i*5+x*3)%4);pe(g,px+i+1.5,py+16-h/2,2.5,h/2+1,i%2?'#2f6e3e':'#215230')}}g.fillStyle='rgba(0,0,0,.25)';g.fillRect(px,py,16,16)}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
