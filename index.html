@@ -1782,9 +1782,9 @@ function ramMax(){return 3+Math.floor(S.lv/3)}
 function ramUsed(lo){return(lo.c||[]).reduce((a,c)=>a+(CHIPS[c]?CHIPS[c].ram:0),0)}
 function skillsFor(){const r=ROLES[S.role];const out=r.sk.filter(k=>SKILLS[k].lv<=S.lv);if(S.sub)for(const k of SUBS[S.sub].sk)if(SKILLS[k].lv<=S.lv)out.push(k);return out}
 function gainXP(x){
-  if(S.lv>=LV_MAX)return false;S.xp+=x;let up=false;
-  while(S.lv<LV_MAX&&S.xp>=xpNeed(S.lv)){S.xp-=xpNeed(S.lv);S.lv++;up=true}
-  if(S.lv>=LV_MAX)S.xp=0;return up;
+  if(S.lv>=lvCap())return false;S.xp+=x;let up=false;
+  while(S.lv<lvCap()&&S.xp>=xpNeed(S.lv)){S.xp-=xpNeed(S.lv);S.lv++;up=true}
+  if(S.lv>=lvCap())S.xp=0;return up;
 }
 async function chooseSub(){
   const r=ROLES[S.role];const subs=r.subs;
@@ -1834,7 +1834,7 @@ async function statusScreen(){
       const st=stats('av'),r=ROLES[S.role];boxW(10,10,GW-20,GH-20);
       R(18,18,60,74,'#111');drawCharBig(S.look,48,88,[0,3,1,2][Math.floor(this.t/40)%4],Math.floor(this.t/8)%4,2);
       T('"'+S.nick+'"',86,16,'#fff',28);T(ANIMALS[S.look.a].n+' · '+r.n+(S.sub?' / '+SUBS[S.sub].n:''),86,32,'#ffe040',22);
-      T('NV '+S.lv+(S.lv<LV_MAX?'   EXP '+S.xp+'/'+xpNeed(S.lv):'   (MAX)'),86,46,'#fff',22);
+      T('NV '+S.lv+(S.lv<lvCap()?'   EXP '+S.xp+'/'+xpNeed(S.lv):'   (MAX)'),86,46,'#fff',22);
       T('PV  '+S.hp+' / '+st.mhp,86,58,'#fff',22);T('ATQ '+st.atk+'   DEF '+st.def+'   MAG '+st.mag,86,70,'#fff',22);
       T('Bellotas: '+S.g,86,82,'#fff',22);
       soulShape(24,102,r.soul,2);wrap('ALMA '+r.sn+': '+r.sa,250,18).slice(0,2).forEach((l,i)=>T(l,44,100+i*9,'#ccc',18));
@@ -2348,6 +2348,7 @@ function hostResolve(acts){
       const mhOf=t=>{const q=memInfo(t);return q?q.mh:30};
       ev.push({s:who+' usa '+sk.n.toUpperCase()+'.'});
       switch(a.n){
+        case'sup_guerrero':case'sup_tanque':case'sup_mago':case'sup_asesino':case'sup_invocador':case'sup_apoyo':supremeSkill(a.n,{P,ev,pid,m,atk,mag,a,dmgEnemy,allEn,heal,mhOf,enDef,pick1});break;
         case'tajo':{const t=pick1(a.tg);if(t>=0){dmgEnemy(t,atk*1.6,pid,'Tajo 1!');dmgEnemy(t,atk*1.6,pid,'Tajo 2!')}break}
         case'grito':for(const q of P.mem)bf(q).atk={t:3};ev.push({s:'¡El grupo se siente más fuerte!'});break;
         case'torbellino':allEn(i=>dmgEnemy(i,atk*2.2-enDef(i),pid,'¡Torbellino!'));break;
@@ -5154,7 +5155,7 @@ function pauseScreen(items,sel){return new Promise(res=>{const p={sel,t:0,
     T(S.nick,64+sl,112,'#fff',26,'center');T(ANIMALS[S.look.a].n+' · '+r.n,64+sl,127,'#ffe040',16,'center');if(S.sub)T(SUBS[S.sub].n,64+sl,137,'#8cf',16,'center');
     T('NV '+S.lv,16+sl,150,'#fff',20);toolRow(48+sl,150);soulShape(98+sl,153,r.soul,1);
     T('PV',16+sl,163,'#f88',16);bar11(34+sl,166,56,5,S.hp/st.mhp,'#ffe040');T(S.hp+'/'+st.mhp,112+sl,163,'#fff',14,'right');
-    T('EXP',16+sl,175,'#8cf',16);bar11(40+sl,178,50,5,S.lv>=LV_MAX?1:S.xp/xpNeed(S.lv),'#40c0ff','#1a1a2a');T(S.lv>=LV_MAX?'MAX':S.xp+'/'+xpNeed(S.lv),112+sl,175,'#fff',14,'right');
+    T('EXP',16+sl,175,'#8cf',16);bar11(40+sl,178,50,5,S.lv>=lvCap()?1:S.xp/xpNeed(S.lv),'#40c0ff','#1a1a2a');T(S.lv>=lvCap()?'MAX':S.xp+'/'+xpNeed(S.lv),112+sl,175,'#fff',14,'right');
     itemIcon('i','bellota',15+sl,187,.7);T(S.g+' bellotas',30+sl,187,'#fff',16);T('ATQ '+st.atk+'  DEF '+st.def+'  MAG '+st.mag,16+sl,199,'#aaa',14);
     // options
     const n=items.length,rh=Math.min(24,Math.floor(196/n)),ox=128-sl;boxW(ox,8,184,n*rh+10);
@@ -5372,7 +5373,7 @@ function tiles13(g,r){if(r.zone!=='bosque')return;const cv=voidPat('bosque'),pat
 
 // =================================================================== EXT14: three routes, tool-gated progression, El Código (neutral route)
 const RNAME={p:'pacifista',g:'genocida',n:'neutral'},RCOL={p:'#6f6',g:'#f66',n:'#e0d040'};
-function route(){if(typeof S==='undefined'||!S||!(S.kills>0))return'p';return(S.spares>0||S.fled>0)?'n':'g'}
+function route(){if(typeof S==='undefined'||!S)return'p';if(S.fl&&S.fl.rneutral)return'n';if(!(S.kills>0))return'p';return(S.spares>0||S.fled>0)?'n':'g'}
 // ------------------------------------------------ progression: farol -> cave, pico -> Linux, gancho -> Procesador
 {const r=ROOMS.cueva;r.obj.push({k:'need',tool:'farol',x:3,y:2,w:4,h:1,msg:['La cueva se traga la luz a dos pasos de la entrada. Sin un farol no vas a ver ni tus patas.','(Doña Mora, en la primera casa de la Aldea, presta uno a quien encuentre sus tres escondites.)']});
  const l=ROOMS.linux1;for(let y=1;y<l.h-1;y++)if(l.map[y][3]==='.'||l.map[y][3]===',')l.obj.push({k:'crack',x:3,y,id:'linux'});
@@ -5785,6 +5786,92 @@ function travDuel(tv){return new Promise(res=>{const st=stats('du'),T_=TIERS[tv.
     else if(D.ph==='end')T(D.res==='win'?'¡Ganaste el duelo!':D.res==='spare'?tv.n+' se rinde. Nadie salió herido de más.':'Caíste...',16,176,'#fff',20),T('Z para continuar',16,214,'#888',14);
     else D.msg.forEach((m,i)=>T(m,16,176+i*13,'#fff',16));
     if(D.ph==='dodge')T('Flechas: esquivar · X: lento',160,158,'#666',12,'center')}};UI.push(p)})}
+
+// =================================================================== EXT18: level 30 + supremacy, five outer zones, consumed travellers, relics
+function lvCap(){return postGame()?30:LV_MAX}
+// ------------------------------------------------ supremacy at level 30: one ultimate active and one passive per class
+const SUP={guerrero:['Mil tajos','Tres golpes a cada enemigo.','+15% ATQ'],tanque:['Bastión eterno','Daño según tu DEF a todos y cura 30% al grupo.','+20% DEF, +10% PV'],mago:['Supernova','Daño mágico enorme a todos.','+15% MAG'],asesino:['Golpe final','Un solo golpe devastador.','+10% ATQ, más roce'],invocador:['Legión','Seis golpes repartidos al azar.','+10% MAG, +10% PV'],apoyo:['Milagro supremo','Cura por completo y revive al grupo.','+15% PV, +3 DEF']};
+for(const r in SUP){SKILLS['sup_'+r]={n:SUP[r][0],tp:60,lv:30,tg:r==='asesino'?'e':r==='apoyo'?'aa':'ea',d:'SUPREMACÍA. '+SUP[r][1]};if(ROLES[r])ROLES[r].sk.push('sup_'+r)}
+function supremeSkill(id,c){const r=id.slice(4),{P,pid,atk,mag,m}=c;
+  if(r==='guerrero')c.allEn(i=>{for(let k=0;k<3;k++)c.dmgEnemy(i,atk*1.7-c.enDef(i),pid,'¡Mil tajos!')});
+  else if(r==='tanque'){c.allEn(i=>c.dmgEnemy(i,(m.df||5)*5,pid,'¡Bastión!'));for(const q of P.mem)c.heal(q,c.mhOf(q)*.3)}
+  else if(r==='mago')c.allEn(i=>c.dmgEnemy(i,mag*4.2,pid,'¡SUPERNOVA!',1));
+  else if(r==='asesino'){const t=c.pick1(c.a.tg);if(t>=0)c.dmgEnemy(t,atk*6.5,pid,'¡GOLPE FINAL!',1)}
+  else if(r==='invocador'){for(let k=0;k<6;k++){const al=aliveEn(P);if(!al.length)break;c.dmgEnemy(al[(k*7+P.turn)%al.length],mag*1.5,pid,'¡Legión!')}}
+  else if(r==='apoyo')for(const q of P.mem)c.heal(q,c.mhOf(q),1)}
+{const _s18=stats;stats=function(md){const s=_s18(md);if(S.lv>=30){const r=S.role;if(r==='guerrero')s.atk=Math.round(s.atk*1.15);else if(r==='tanque'){s.def=Math.round(s.def*1.2);s.mhp=Math.round(s.mhp*1.1)}else if(r==='mago')s.mag=Math.round(s.mag*1.15);else if(r==='asesino'){s.atk=Math.round(s.atk*1.1);s.gr+=.3}else if(r==='invocador'){s.mag=Math.round(s.mag*1.1);s.mhp=Math.round(s.mhp*1.1)}else if(r==='apoyo'){s.mhp=Math.round(s.mhp*1.15);s.def+=3}}return s}}
+// ------------------------------------------------ zones
+Object.assign(ZONES,{minas:{fl:'#5a4630',fl2:'#6a5438',wl:'#8a6a3a',wt:'#2a2014',vo:'#000',ac:'#ffb040'},pantano:{fl:'#2e4a34',fl2:'#3a5a3c',wl:'#4a6a44',wt:'#16261a',vo:'#000',ac:'#a0e060'},pausa:{fl:'#5a6474',fl2:'#667082',wl:'#8a94a8',wt:'#2a3040',vo:'#000',ac:'#80c0ff'},jardin:{fl:'#3a7a3a',fl2:'#48904a',wl:'#c05a8a',wt:'#3a1a2a',vo:'#000',ac:'#ff80c0'},archivo:{fl:'#1e4a5a',fl2:'#28586a',wl:'#3a7a8a',wt:'#0c2028',vo:'#000',ac:'#60e0e0'}});
+Object.assign(ZCARD,{minas:['MINAS DE DATOS','Cada veta es un recuerdo de alguien'],pantano:['PANTANO DE CACHÉ','Todo lo que se guarda, se pudre'],pausa:['CIUDAD EN PAUSA','Nadie le dio a reanudar'],jardin:['JARDÍN SIN PODAR','Crece lo que nadie vigila'],archivo:['ARCHIVO HUNDIDO','Páginas bajo el agua']});Object.assign(BGZ,{minas:'circuit',pantano:'clouds',pausa:'windows',jardin:'forest',archivo:'paper'});
+const E18=(n,hp,atk,def,spr,flav,acts,pats)=>({n,hp,atk,def,xp:170,g:60,spr,flav,acts:acts.map(([a,t,co])=>({n:a,t,sp:50,co})),pats});
+Object.assign(EN,{
+ pepita:E18('Pepita',84,11,5,'pepita',['Una pepita de datos con un pico diminuto.','Pepita brilla cuando cree que nadie la mira.'],[['Admirar su brillo','Le dices que brilla. Se pone colorada. Bueno, dorada.'],['Pulirla','La frotas con la manga. Reluce.',1]],[['rain',{n:16,sp:1.1}],['aimed',{n:9,sp:1.8}]]),
+ vagon:E18('Vagón',96,12,6,'vagon',['Un vagón de mina que rueda solo.','Vagón traquetea sin rumbo.'],[['Empujarlo','Lo empujas un poco. Le encanta.'],['Subirse','Te subes. Da una vuelta contigo.',1]],[['side',{n:11,sp:1.7}],['bounce',{n:5}]]),
+ renacuajo:E18('Renacuajo',78,11,4,'renacuajo',['Un renacuajo hecho de archivos temporales.','Renacuajo nada en círculos.'],[['Darle espacio','Borras un poco de caché. Nada más a gusto.'],['Croar','Croas. Te responde como puede.',1]],[['burbujas',{}],['wind',{}]]),
+ nenufar:E18('Nenúfar',88,10,6,'nenufar',['Un nenúfar con un ojo en el centro.','El Nenúfar parpadea muy despacio.'],[['Regarlo','Le echas agua limpia. Suspira.'],['Mirarlo','Le sostienes la mirada. Parpadea primero.',1]],[['goteo',{}],['ring',{n:10,sp:1.1,k:3}]]),
+ semaforo:E18('Semáforo',90,12,6,'semaforo',['Un semáforo atascado en ámbar.','El Semáforo no se decide.'],[['Esperar el verde','Esperas. Y esperas. Se pone verde solo por ti.'],['Cruzar con cuidado','Miras a ambos lados. Aprueba.',1]],[['tictac',{}],['lightning',{}]]),
+ paloma:E18('Paloma pausada',76,11,4,'paloma',['Una paloma congelada a medio aletear.','La Paloma lleva años en el mismo fotograma.'],[['Darle a reproducir','Pulsas ▶ en el aire. Aletea una vez.'],['Migas','Le dejas migas. Las mira con deseo.',1]],[['rewind',{}],['aimed',{n:8,sp:1.9}]]),
+ espina:E18('Espina',86,13,5,'espina',['Una enredadera con demasiadas púas.','Espina crece un poco mientras la miras.'],[['Podar con cuidado','Le quitas una rama seca. Respira mejor.'],['Elogiar sus flores','Tiene una sola. Le dices que es preciosa.',1]],[['lightning',{}],['side',{n:10,sp:1.6}]]),
+ polen:E18('Polen',70,10,3,'polen',['Una nube de polen con cara de sueño.','Polen flota sin prisa.'],[['Estornudar','Estornudas. Se ríe.'],['Soplar suave','Soplas. Se mece.',1]],[['fog',{}],['invis',{}]]),
+ pezlibro:E18('Pez libro',82,11,5,'pezlibro',['Un pez con páginas en vez de aletas.','El Pez libro pasa de capítulo.'],[['Leerle','Le lees una página. Burbujea feliz.'],['Marcar la página','Le pones un marcapáginas. Te lo agradece.',1]],[['feed',{}],['burbujas',{}]]),
+ tinta:E18('Mancha de tinta',92,12,5,'tinta',['Una mancha de tinta que no se seca.','La Mancha se extiende un poco.'],[['Secarla','La secas con papel. Queda más definida.'],['Escribir con ella','Escribes "hola". Se queda leyéndolo.',1]],[['goteo',{}],['pixels',{}]])});
+ESPR.pepita=(x,y,t)=>{const cy=y-16+Math.sin(t*.08)*2;X.fillStyle='#c8902a';X.beginPath();X.moveTo(x-12,cy+10);X.lineTo(x-14,cy-2);X.lineTo(x-4,cy-12);X.lineTo(x+9,cy-9);X.lineTo(x+14,cy+3);X.lineTo(x+7,cy+12);X.fill();X.fillStyle='#ffd060';X.beginPath();X.moveTo(x-9,cy+6);X.lineTo(x-10,cy-2);X.lineTo(x-3,cy-9);X.lineTo(x+5,cy-6);X.lineTo(x,cy+7);X.fill();R(x-6,cy-2,2,3,'#201408');R(x+2,cy-2,2,3,'#201408');R(x-3,cy+4,5,1,'#201408');if(t%50<6)R(x+7,cy-12,1,5,'#fff'),R(x+5,cy-10,5,1,'#fff');R(x+13,cy-14,2,14,'#7a5028');R(x+9,cy-16,10,3,'#9a9aa6')};
+ESPR.vagon=(x,y,t)=>{const b=Math.abs(Math.sin(t*.2))*1.5,cy=y-12-b;R(x-17,cy-10,34,16,'#5a4630');R(x-15,cy-8,30,12,'#7a6040');R(x-17,cy-10,34,2,'#9a7a50');for(let i=0;i<4;i++)ell(x-10+i*7,cy-11-(i%2)*2,4,3,i%2?'#ffd060':'#c8902a');ell(x-7,cy-2,3,3,'#fff');ell(x+7,cy-2,3,3,'#fff');R(x-8,cy-2,2,2,'#111');R(x+6,cy-2,2,2,'#111');for(const s of[-10,10]){ell(x+s,y-4,5,5,'#2a2a30');X.save();X.translate(x+s,y-4);X.rotate(t*.2);R(-4,-.5,8,1,'#8a8a94');X.restore()}};
+ESPR.renacuajo=(x,y,t)=>{const cy=y-18+Math.sin(t*.07)*3;X.strokeStyle='#3a8a5a';X.lineWidth=4;X.lineCap='round';X.beginPath();X.moveTo(x+8,cy);for(let i=1;i<6;i++)X.lineTo(x+8+i*5,cy+Math.sin(t*.2+i)*4);X.stroke();X.lineCap='butt';ell(x,cy,13,11,'#3a8a5a');ell(x-2,cy-2,10,8,'#58b078');ell(x-5,cy-2,3,4,'#fff');ell(x+4,cy-2,3,4,'#fff');R(x-5,cy-2,2,3,'#0a2014');R(x+4,cy-2,2,3,'#0a2014');T('.tmp',x,cy+5,'#0a2014',10,'center')};
+ESPR.nenufar=(x,y,t)=>{const cy=y-10;ell(x,cy+4,22,8,'#1e5a34');ell(x,cy+3,20,7,'#2e7a48');X.fillStyle='#1e5a34';X.beginPath();X.moveTo(x,cy+3);X.lineTo(x+20,cy-1);X.lineTo(x+20,cy+6);X.fill();for(let i=0;i<6;i++){const a=i/6*6.283+Math.sin(t*.03)*.1;X.fillStyle=i%2?'#f0a0c0':'#ffc8dc';X.beginPath();X.ellipse(x+Math.cos(a)*7,cy-8+Math.sin(a)*4,6,3,a,0,7);X.fill()}const bl=t%140<8;ell(x,cy-8,5,bl?1:4,'#fff');if(!bl)ell(x+Math.sin(t*.04)*1.5,cy-8,2,2,'#203020')};
+ESPR.semaforo=(x,y,t)=>{R(x-2,y-22,4,22,'#3a3a44');R(x-6,y-2,12,3,'#3a3a44');R(x-9,y-58,18,38,'#22222a');RO(x-9,y-58,18,38,'#55556a',1);const on=Math.floor(t/40)%3;[['#ff4040',0],['#ffc020',1],['#40e060',2]].forEach(([c,i])=>{ell(x,y-51+i*11,4,4,on===i||i===1?c:'#33333c')});ell(x-4,y-64,2,2,'#fff');ell(x+4,y-64,2,2,'#fff');R(x-4,y-64,1,1,'#000');R(x+4,y-64,1,1,'#000')};
+ESPR.paloma=(x,y,t)=>{const j=t%90<3?2:0,cy=y-22;ell(x+j,cy,11,8,'#8a94a8');ell(x-9+j,cy-7,6,6,'#a8b2c4');R(x-17+j,cy-7,4,2,'#e0a030');R(x-11+j,cy-9,2,2,'#111');X.fillStyle='#6a7488';X.beginPath();X.moveTo(x-2+j,cy-4);X.lineTo(x+10+j,cy-20);X.lineTo(x+14+j,cy-2);X.fill();R(x-3,cy+8,1,6,'#e0a030');R(x+3,cy+8,1,6,'#e0a030');R(x-8,cy-24,3,8,'#fff');R(x-3,cy-24,3,8,'#fff')};
+ESPR.espina=(x,y,t)=>{X.strokeStyle='#2a7a3a';X.lineWidth=4;X.beginPath();X.moveTo(x,y);for(let i=1;i<=8;i++)X.lineTo(x+Math.sin(i*.9+t*.04)*10,y-i*6);X.stroke();for(let i=1;i<8;i++){const px=x+Math.sin(i*.9+t*.04)*10,py=y-i*6;X.fillStyle='#d8e8c0';X.beginPath();X.moveTo(px,py);X.lineTo(px+(i%2?8:-8),py-3);X.lineTo(px,py-3);X.fill()}const hx=x+Math.sin(7.2+t*.04)*10;ell(hx,y-52,7,6,'#e04080');ell(hx,y-52,3,3,'#ffe060');R(hx-4,y-45,2,2,'#111');R(hx+2,y-45,2,2,'#111')};
+ESPR.polen=(x,y,t)=>{const cy=y-26+Math.sin(t*.05)*3;for(let i=0;i<9;i++){const a=i*.7+t*.02;X.globalAlpha=.5;ell(x+Math.cos(a)*(12+i%3*3),cy+Math.sin(a)*(9+i%2*3),5,5,'#f0e080')}X.globalAlpha=1;ell(x,cy,11,10,'#f8f0a0');R(x-6,cy-2,4,1,'#6a5a20');R(x+2,cy-2,4,1,'#6a5a20');T('z',x+8,cy-16-((t*.2)%8),'#fff',12)};
+ESPR.pezlibro=(x,y,t)=>{const cy=y-22+Math.sin(t*.06)*3,f=Math.sin(t*.2)*3;X.fillStyle='#e8e0c8';X.beginPath();X.moveTo(x+10,cy);X.lineTo(x+22,cy-8+f);X.lineTo(x+22,cy+8-f);X.fill();R(x-14,cy-9,26,18,'#7a3a2a');R(x-12,cy-8,22,16,'#e8e0c8');for(let i=0;i<4;i++)R(x-10,cy-5+i*3.5,16-(i%2)*5,1,'#8a7a5a');R(x-14,cy-9,3,18,'#4a2218');ell(x-6,cy-3,2.5,2.5,'#fff');R(x-7,cy-3,2,2,'#111');for(let i=0;i<3;i++){X.strokeStyle='#bfe0ff';X.lineWidth=1;X.beginPath();X.arc(x-18-i*3,cy-10-((t*.3+i*9)%20),1.5,0,7);X.stroke()}};
+ESPR.tinta=(x,y,t)=>{const cy=y-14;X.fillStyle='#10101c';X.beginPath();for(let i=0;i<=14;i++){const a=i/14*6.283,r=14+Math.sin(a*3+t*.06)*4+Math.sin(a*5-t*.04)*2;X.lineTo(x+Math.cos(a)*r*1.2,cy+Math.sin(a)*r*.7)}X.fill();for(let i=0;i<3;i++)ell(x-14+i*13,y-1,3+i%2,2,'#10101c');ell(x-5,cy-3,3,4,'#fff');ell(x+5,cy-3,3,4,'#fff');R(x-5,cy-2,2,2,'#4040c0');R(x+5,cy-2,2,2,'#4040c0');R(x-4,cy-12,6,2,'#3030a0')};
+// consumed travellers
+const CONS={minas:{n:'Brea, la Minera',role:'tanque',lk:{a:3,f:2,o:4,oc:1,h:1,c:0,ac:5,ew:'martillo',ea:'cota'},from:'un juego de excavar',rel:'Lámpara de veta'},pantano:{n:'Limo, el Pescador',role:'invocador',lk:{a:9,f:6,o:1,oc:3,h:2,c:0,ac:1,ew:'baculo',ea:'impermeable'},from:'un simulador de pesca',rel:'Anzuelo de plata'},
+ pausa:{n:'Tic, la Repartidora',role:'asesino',lk:{a:5,f:1,o:2,oc:4,h:1,c:1,ac:4,ew:'dagas',ea:'gabardina'},from:'un juego de repartos contrarreloj',rel:'Botón de reanudar'},jardin:{n:'Brote, el Jardinero',role:'apoyo',lk:{a:12,f:4,o:3,oc:6,h:6,c:0,ac:6,ew:'batuta',ea:'manto'},from:'un juego de cuidar plantas',rel:'Semilla que no se pudre'},
+ archivo:{n:'Folio, el Archivista',role:'mago',lk:{a:16,f:7,o:6,oc:5,h:0,c:1,ac:2,ew:'libro',ea:'capucha'},from:'una enciclopedia interactiva',rel:'Página en blanco'}};
+function consSpr(z,x,y,t,st){const C=CONS[z],mad=st&&st.mad,lk=C.lk;lk.a%=ANIMALS.length;lk.f%=FURS.length;lk.o%=TOPS.length;lk.oc%=CLOTH.length;lk.h%=HATS.length;lk.ac%=ACCS.length;const j=t%70<3?rint(-2,2):0;
+  codeMass(x+6,y+2,mad?1.05:.8,t,{noface:1,a:.95});drawCharBig(lk,x+j,y-6+Math.sin(t*.05)*1.5,0,st&&st.hurt?1:0,3);
+  X.save();X.beginPath();X.rect(x-40,y-(mad?62:36),80,mad?62:36);X.clip();X.globalAlpha=.55;for(let cx=x-30;cx<x+30;cx+=6)for(let k=0;k<12;k++){const cy=y-70+k*7+((t*.4+cx)%7);T('01{};<>'[(k*3+cx+(t>>4))%7&7]||'0',cx,cy,'#30ff90',12)}X.restore();X.globalAlpha=1;
+  const ey=y-66;R(x-9+j,ey,5,3,mad?'#ff3030':'#30ff90');R(x+4+j,ey,5,3,mad?'#ff3030':'#30ff90');if(t%9<2){X.globalAlpha=.5;R(x-36,y-30-((t*3)%60),72,2,'#30ff90');X.globalAlpha=1}}
+for(const z in CONS){const C=CONS[z],id='cons_'+z,sig=SIGPAT[C.role]||SIGPAT.guerrero;ESPR[id]=(x,y,t,st)=>consSpr(z,x,y,t,st);
+  BOSS[id]={n:C.n,hp:2600,atk:18,def:8,xp:1500,g:400,spr:id,boss:1,cons:z,mus:'m_codigo',dual:1,intro:['Un viajero. O lo que El Código dejó de él.',C.n.split(',')[0].toUpperCase()+': ...ab...sor...ber...'],talk:['...ayu... no. ABSORBER.','Yo venía de '+C.from+'...','01001000... duele...','No me acuerdo de mi nombre.'],talk2:['SUÉLTAME. NO. QUÉDATE.','¡YA NO SOY YO!'],p2txt:['El código le sube por el pecho. Los ojos se le ponen rojos.'],
+   flav:['Debajo del código todavía respira alguien.','Mueve los labios. Parece decir un nombre.'],acts:[{n:'Decir su nombre',t:'Dices "'+C.n.split(',')[0]+'". Algo en sus ojos responde.',sp:25},{n:'Recordarle su bosque',t:'Le hablas de '+C.from+'. Deja de temblar un momento.',sp:25,co:1},{n:'Arrancar código',t:'Tiras de una hebra verde. Se suelta un trozo.',sp:18}],
+   pats:[sig[0],sig[1],['goteo',{}],['baba',{}]],p2:[['marea',{}],['burbujas',{}],sig[0],['baba',{fast:1}]],spare:C.n.split(',')[0]+' despierta. El código se le cae como barro seco. "Gracias. Toma. Esto era mío."',kill:C.n.split(',')[0]+' se deshace. Entre los números queda algo que no es código.'};
+  TOOLS['rel_'+z]={n:C.rel,d:'Reliquia de '+C.n.split(',')[0]+'. Una de las cinco que abren la Puerta del norte.'};ARENA.push([id,22]);BGK[id]='rain'}
+const relCount=()=>Object.keys(CONS).filter(z=>S.fl['rel_'+z]).length;
+{const _ic18=iconDraw;iconDraw=function(t,id,x,y){if(t==='t'&&id.slice(0,4)==='rel_'){const c=(ZONES[id.slice(4)]||{}).ac||'#ffd070';X.fillStyle=c;X.beginPath();X.moveTo(x+8,y+1);X.lineTo(x+14,y+7);X.lineTo(x+8,y+15);X.lineTo(x+2,y+7);X.fill();X.fillStyle='rgba(255,255,255,.55)';X.beginPath();X.moveTo(x+8,y+1);X.lineTo(x+8,y+15);X.lineTo(x+2,y+7);X.fill();R(x+7,y+4,1,3,'#fff');return}_ic18(t,id,x,y)}}
+{const _br18=bossReward;bossReward=function(id,killed){_br18(id,killed);if(id.slice(0,5)==='cons_'){giveTool('rel_'+id.slice(5));S.fl.relics=relCount()}}}
+{const _se18=startEncounter;startEncounter=function(enc,opt){opt=opt||{};const cons=opt.boss&&BOSS[opt.boss]&&BOSS[opt.boss].cons;if(cons&&!opt.arena)opt.ak=+Math.max(.8,1+(partyTopLv()+2-20)*.07).toFixed(2);const r=_se18(enc,opt);if(cons&&!opt.arena&&BT&&BT.host&&route()==='g')BT.P.geno=1;return r}}
+// rooms
+Object.assign(WEAPONS,{picodatos:{n:'Pico de datos',atk:17,bar:{n:1,sp:1},d:'Un golpe seco. Encuentra la veta.',p:0},podadora:{n:'Podadora',atk:11,mag:10,bar:{n:2,sp:1.2},d:'Corta por lo sano. Dos golpes.',p:0}});Object.assign(ARMORS,{botascache:{n:'Botas de caché',def:12,d:'Recuerdan cada paso.',p:0},tunicapag:{n:'Túnica de páginas',def:9,mag:6,d:'+6 MAG. Cruje al andar.',p:0}});Object.assign(CHIPS,{pausa:{n:'Pausa',ram:2,d:'+5 ATQ y +5 DEF. Un respiro.',p:0}});ICOL.botascache='#5a8a5a';ICOL.tunicapag='#d8d0b0';WPN_POLE.picodatos=['#7a5028','#ffb040'];WPN_BLADE.podadora=['#c0c8d0',7];
+{const _s18b=stats;stats=function(m){const s=_s18b(m);if(s.ch.includes('pausa')){s.atk+=5;s.def+=5}return s}}
+const RCH=(need,give,t)=>({k:'rchest',x:4,y:2,need,give,t});
+const ZDEF={minas:{at:[3,12.5],n:['Minas de datos · Galería','Minas de datos · Veta madre'],mus:'linux',objs:[RCH('archivo',['w','picodatos'],'¡PICO DE DATOS! (arma)'),{k:'sign',x:6,y:6,t:['"GALERÍA 7. Derrumbe más adelante: traiga pico."','"Para abrir la reja, cargue el vagón de lo más ligero a lo más pesado."']},OP('mn',1,'Plu',14,3),OP('mn',3,'Pie',17,9),OP('mn',2,'Hoj',20,4),OP('mn',4,'Yun',23,10),{k:'gate',x:26,y:7,h:2,cond:'order:mn:4',id:'mng'}],cr:10},
+ pantano:{at:[3,40.5],n:['Pantano de caché · Orilla','Pantano de caché · Fondo'],mus:'title',objs:[RCH('minas',['a','botascache'],'¡BOTAS DE CACHÉ! (armadura)'),{k:'tswitch',x:5,y:9,id:'pa',s:'A'},{k:'tswitch',x:12,y:2,id:'pb',s:'B'},{k:'tgate',x:16,y:7,h:2,sw:'pa',delay:60,dur:200,id:'pg1'},{k:'tgate',x:25,y:7,h:2,sw:'pb',delay:120,dur:170,id:'pg2'},{k:'sign',x:7,y:6,t:['"Las burbujas de gas abren las compuertas, pero tardan. A abre la primera; B, la segunda."','"Pisa las dos y corre."']}]},
+ pausa:{at:[65,12.5],n:['Ciudad en pausa · Avenida','Ciudad en pausa · Semáforo eterno'],mus:'windows',objs:[RCH('pantano',['c','pausa'],'¡Chip PAUSA! (+5 ATQ, +5 DEF)'),{k:'sign',x:6,y:6,t:['Un cartel de obra: "CIUDAD EN PAUSA."','"Para reanudar: primero detén, luego retrocede, y al final reproduce."']},OP('pz',2,'REW',12,3),OP('pz',1,'STOP',18,10),OP('pz',3,'PLAY',22,4),{k:'gate',x:26,y:7,h:2,cond:'order:pz:3',id:'pzg'}]},
+ jardin:{at:[65,40.5],n:['Jardín sin podar · Sendero','Jardín sin podar · Invernadero'],mus:'bosque',objs:[RCH('pausa',['w','podadora'],'¡PODADORA! (arma)'),{k:'hook',x:12,y:6,to:[16,7]},{k:'hook',x:17,y:6,to:[12,7]},{k:'sign',x:8,y:6,t:['"Las raíces se comieron el puente. Quedan los postes."','"(Hace falta un gancho.)"']}],gap:14},
+ archivo:{at:[14.5,3],n:['Archivo hundido · Pasillo','Archivo hundido · Sala de lectura'],mus:'title',objs:[RCH('jardin',['a','tunicapag'],'¡TÚNICA DE PÁGINAS! (armadura)'),{k:'sign',x:6,y:6,t:['Una placa bajo el agua: "Silencio. Aquí se viene a hacer una sola cosa."','"Cinco baldosas, cinco letras."']},OP('ar',1,'L',10,3),OP('ar',3,'B',13,10),OP('ar',2,'I',16,2),OP('ar',5,'O',19,9),OP('ar',4,'R',22,4),{k:'gate',x:26,y:7,h:2,cond:'order:ar:5',id:'arg'}]}};
+ENC.minas=[['pepita'],['vagon'],['pepita','vagon'],['pepita','pepita','vagon']];ENC.pantano=[['renacuajo'],['nenufar'],['renacuajo','nenufar'],['renacuajo','renacuajo','nenufar']];ENC.pausa=[['semaforo'],['paloma'],['paloma','semaforo'],['paloma','paloma','semaforo']];ENC.jardin=[['espina'],['polen'],['polen','espina'],['polen','espina','polen']];ENC.archivo=[['pezlibro'],['tinta'],['pezlibro','tinta'],['tinta','pezlibro','pezlibro']];
+ENC.afuera=[['pepita','renacuajo'],['paloma','polen'],['pezlibro','tinta'],['vagon','semaforo'],['espina','nenufar'],['polen','pepita','paloma'],['tinta'],['renacuajo','pezlibro','espina']];
+for(const z in ZDEF){const D=ZDEF[z];zonePair(z,D.n[0],D.n[1],D.mus,z,'cons_'+z,['afueras',D.at],D.objs);const r=ROOMS[z+'1'];r.nw=1;r.trav=1;r.rate=.6;ROOMS[z+'2'].nw=1;CORR[z+'1']='ladera';CORR[z+'2']='ladera';
+  if(D.cr)for(let y=1;y<r.h-1;y++)r.obj.push({k:'crack',x:D.cr,y,id:z});
+  if(D.gap)for(let y=1;y<r.h-1;y++)r.map[y]=r.map[y].slice(0,D.gap)+' '+r.map[y].slice(D.gap+1);
+  for(const o of r.obj){if(o.k!=='gate'&&o.k!=='tgate')continue;for(let y=1;y<r.h-1;y++){if(y>=o.y&&y<o.y+(o.h||1))continue;const row=r.map[y];r.map[y]=row.slice(0,o.x)+'#'+row.slice(o.x+1)}}}
+{const _or18=objRect;objRect=function(o){if(o.k==='rchest')return[o.x*16+1,o.y*16+4,14,12];return _or18(o)}}
+{const _is18=isSolidObj;isSolidObj=function(o){if(o.k==='rchest')return true;if(o.k==='tgate'&&ROOM&&ROOM.id==='pantano1'&&(S.fl['tp:pantano1']||S.fl.rel_pantano))return false;return _is18(o)}}
+{const _sy18=sortY;sortY=function(o){if(o.k==='rchest')return o.y*16+14;return _sy18(o)}}
+{const _st18=stepTriggers;stepTriggers=function(){if(ROOM&&ROOM.id==='pantano1'&&PL.x>26.5*16&&!S.fl['tp:pantano1'])S.fl['tp:pantano1']=1;_st18()}}
+{const _do18=drawObj;drawObj=function(o){if(o.k==='rchest'){const x=o.x*16,y=o.y*16,op=S.fl['rc:'+o.need],c=(ZONES[o.need]||{}).ac||'#ffd070';R(x+1,y+6,14,9,'#3a3a4a');R(x+1,y+4,14,4,op?'#16161c':'#5a5a70');RO(x+1,y+4,14,11,c,1);if(!op){X.fillStyle=c;X.beginPath();X.moveTo(x+8,y+7);X.lineTo(x+11,y+10);X.lineTo(x+8,y+13);X.lineTo(x+5,y+10);X.fill()}return}
+  if(o.k==='tgate'&&ROOM&&ROOM.id==='pantano1'&&(S.fl['tp:pantano1']||S.fl.rel_pantano))return;_do18(o)}}
+{const _in18=interact;interact=async function(){const[fx,fy]=facingPoint();const o=NET.playerNear(fx,fy)?null:objAtPoint(fx,fy);
+  if(o&&o.k==='rchest'){AU.sfx('sel');if(S.fl['rc:'+o.need]){await say(['El cofre está vacío.']);return}if(!S.fl['rel_'+o.need]){await say(['Un cofre sin cerradura. En la tapa hay un hueco con forma de reliquia.','(Encaja la de: '+CONS[o.need].n+'. '+ZCARD[o.need][0]+'.)']);return}S.fl['rc:'+o.need]=1;AU.sfx('ok');giveThing(o.give);saveGame();await say(['La '+CONS[o.need].rel.toLowerCase()+' encaja en el hueco. Clic.',o.t]);return}
+  if(o&&o.k==='ngate'&&!o.fin){const z=Object.keys(ZDEF)[HUB.gates.findIndex(g=>g[2]===o.n)];if(!z)return;AU.sfx('sel');const done=S.fl['rel_'+z];const c=await choose('Camino a: '+o.n+'. '+o.d+(done?' (Reliquia conseguida)':''),['Entrar','Ahora no']);if(c===0){AU.sfx('door');transition(z+'1',1,7.5,3)}return}
+  if(o&&o.k==='ngate'&&o.fin){AU.sfx('sel');const n=relCount();if(n<5)await say(['LA PUERTA DEL NORTE. Cinco huecos con forma de reliquia. '+n+' de 5 ocupados.','Detrás se oye algo enorme que respira despacio. Y pasos. De zapato.']);else await say(['Las cinco reliquias encajan. La puerta vibra... pero no cede todavía.','(Lo que hay detrás aún no está terminado. Pronto.)']);return}
+  if(o&&o.k==='tnpc'&&o.who==='Erudito Tinta'&&!S.fl.rneutral&&route()!=='n'){AU.sfx('sel');await say(['Tinta: Tres clases de viajeros: los que no dañaron a nadie, los que dañaron a todos y los que hicieron lo que pudieron.','Tinta: Aquí fuera puedes dejar de ser de los primeros o de los segundos, si quieres. Hacer lo que puedas, caso por caso.'],{who:'Erudito Tinta',look:o.lk});
+    const c=await choose('¿Cambiar a ruta NEUTRAL? No se puede deshacer.',['No','Sí, cambiar']);if(c===1){S.fl.rneutral=1;saveGame();AU.sfx('save');await say(['Tinta lo anota en su libro. "Hecho. Ahora eres responsable de cada decisión, una por una."'],{who:'Erudito Tinta',look:o.lk})}return}
+  return _in18()}}
+{const _dw18=drawObj;}
+{const _wu18=worldUpdate;worldUpdate=function(){_wu18();if(FR%60||UI.busy()||BT||GS!=='world'||!S)return;if(S.lv>=30&&!S.fl.sup30){S.fl.sup30=1;saveGame();say(['¡NIVEL 30! Alcanzas la SUPREMACÍA de tu clase.','Habilidad nueva: '+SUP[S.role][0]+'. '+SUP[S.role][1],'Pasiva permanente: '+SUP[S.role][2]+'.'])}}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
