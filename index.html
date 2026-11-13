@@ -1560,6 +1560,7 @@ function drawWorld(){
   let cx=PL.x-vw/2,cy=PL.y-vh/2;
   if(r.w*16<=vw)cx=(r.w*16-vw)/2;else cx=clamp(cx,0,r.w*16-vw);
   if(r.h*16<=vh)cy=(r.h*16-vh)/2;else cy=clamp(cy,0,r.h*16-vh);
+  if(WT.cam){cx=r.w*16<=vw?cx:clamp(WT.cam[0]-vw/2,0,r.w*16-vw);cy=r.h*16<=vh?cy:clamp(WT.cam[1]-vh/2,0,r.h*16-vh)}
   if(UI.shake>0){cx+=rnd(-2,2);cy+=rnd(-2,2);UI.shake--}
   CAMX=Math.round(cx);CAMY=Math.round(cy);gx();
   worldBackdrop(vw,vh);
@@ -3533,7 +3534,7 @@ const NET={on:false,pid:Math.random().toString(36).slice(2,10),room:null,user:nu
   },
   playerNear(x,y){for(const g of this.ghostsInRoom())if(Math.abs(g.x-x)<12&&Math.abs(g.y-6-y)<16)return Object.assign({},this.others().find(o=>o.pid===g.pid)||{},{peer:g.pid});return null},
   say(s){this.sayI++;this.lobbyPatch({say:{i:this.sayI+'-'+this.pid,s}},true)},
-  lobbyPatch(patch,force){if(!this.room)return;this.room.presence(patch).catch(()=>{})},
+  lobbyPatch(patch,force){if(!this.room)return;this.room.presence(patch).catch(()=>{this.lastSent=''})},
   // ---------- requests
   invite(p){
     if(!this.party){this.createParty().then(()=>this.invite(p));return}
@@ -3578,7 +3579,8 @@ const NET={on:false,pid:Math.random().toString(36).slice(2,10),room:null,user:nu
       const st=GS==='title'||GS==='create'?'title':BT?'battle':DU?'duel':'world';
       const p={pid:this.pid,n:S.nick||'?',lk:S.look,ro:S.role,lv:S.lv,rm:S.room,x:Math.round(PL.x),y:Math.round(PL.y),d:PL.d,mv:PL.mv?1:0,st,pt:this.partyCode||null};
       if(this.myReq&&Date.now()-this.myReq.at>30000){this.myReq=null;p.rq=null}
-      const j=JSON.stringify(p);if(j!==this.lastSent){this.lastSent=j;this.lobbyPatch(p)}
+      const j=JSON.stringify(p);if(j!==this.lastSent||FR%180===0){this.lastSent=j;this.lobbyPatch(p)}
+      if(this.party&&FR%300===0)this.partyPatch(Object.assign({pid:this.pid},this.infoPatch()));
     }
     if(this.party&&FR%30===0){const ip=this.infoPatch();const changed=Object.keys(ip).some(k=>JSON.stringify(ip[k])!==JSON.stringify(this.pState[k]));if(changed)this.partyPatch(ip)}
     if(FR%10===0)this.scanRequests();
@@ -3644,22 +3646,25 @@ const FAST_KEYS=new Set(['x','y','d','mv','sl','dhp']);
 function supaRoomFactory(url,key,pid){
   const client=window.supabase.createClient(url,key,{realtime:{params:{eventsPerSecond:20}}});
   const mk=(name,fastMs)=>{
-    const ch=client.channel('ut-'+name,{config:{presence:{key:pid},broadcast:{self:false}}});
-    let slow={},fast={},slowSent='',fastSent='',tSlow=null,tFast=null,lastSlow=0,lastFast=0,ok=false,meta={},fastOf={},cache=[];const conn=[];
+    let ch=null,slow={},fast={},slowSent='',fastSent='',tSlow=null,tFast=null,tRe=null,lastSlow=0,lastFast=0,ok=false,left=false,first=null,meta={},fastOf={},fastAt={},cache=[];const conn=[];
     const rebuild=()=>{const out=[];const seen=new Set();
-      for(const k in meta){seen.add(k);const p=Object.assign({},meta[k],k===pid?fast:fastOf[k]||{});out.push({peer:k,presence:Object.freeze(p),isMe:k===pid,sameTab:k===pid,kind:'viewer',guest:false})}
+      for(const k in meta){seen.add(k);const m=meta[k],p=Object.assign({},m,k===pid?fast:fastOf[k]||{});if(p.x==null&&m._x!=null){p.x=m._x;p.y=m._y;p.d=m._d||0}out.push({peer:k,presence:Object.freeze(p),isMe:k===pid,sameTab:k===pid,kind:'viewer',guest:false})}
       if(!seen.has(pid))out.push({peer:pid,presence:Object.freeze(Object.assign({},slow,fast)),isMe:true,sameTab:true,kind:'viewer',guest:false});
       cache=out};
-    ch.on('presence',{event:'sync'},()=>{const st=ch.presenceState();const prev=meta;meta={};for(const k in st){const a=st[k];const m=a&&a[a.length-1];if(!m)continue;const p=Object.assign({},m);delete p.presence_ref;meta[k]=p}
-      for(const k in fastOf)if(!meta[k])delete fastOf[k];
-      if(Object.keys(meta).some(k=>k!==pid&&!prev[k])){fastSent='';if(!tFast)tFast=setTimeout(flushFast,300)}
-      rebuild()});
-    ch.on('broadcast',{event:'f'},({payload})=>{if(!payload||typeof payload.k!=='string'||payload.k===pid)return;fastOf[payload.k]=Object.assign(fastOf[payload.k]||{},payload.v||{});rebuild()});
-    const flushSlow=()=>{tSlow=null;if(!ok)return;const j=JSON.stringify(slow);if(j===slowSent)return;slowSent=j;lastSlow=Date.now();ch.track(JSON.parse(j)).catch(()=>{slowSent=''})};
-    const flushFast=()=>{tFast=null;if(!ok)return;const j=JSON.stringify(fast);if(j===fastSent)return;fastSent=j;lastFast=Date.now();ch.send({type:'broadcast',event:'f',payload:{k:pid,v:JSON.parse(j)}}).catch(()=>{})};
-    const ready=new Promise(res=>{ch.subscribe(s=>{
-      if(s==='SUBSCRIBED'){ok=true;slowSent='';fastSent='';flushSlow();flushFast();conn.forEach(f=>f(true));res(true)}
-      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'||s==='CLOSED'){ok=false;conn.forEach(f=>f(false));res(false)}})});
+    const flushSlow=(force)=>{tSlow=null;if(!ok||!ch)return;const j=JSON.stringify(slow);if(j===slowSent&&!force)return;slowSent=j;lastSlow=Date.now();const pl=JSON.parse(j);pl._t=Date.now();pl._x=fast.x;pl._y=fast.y;pl._d=fast.d;try{const r=ch.track(pl);if(r&&r.catch)r.catch(()=>{slowSent=''})}catch(e){slowSent=''}};
+    const flushFast=()=>{tFast=null;if(!ok||!ch)return;const j=JSON.stringify(fast);if(j===fastSent)return;fastSent=j;lastFast=Date.now();try{const r=ch.send({type:'broadcast',event:'f',payload:{k:pid,v:JSON.parse(j)}});if(r&&r.catch)r.catch(()=>{fastSent=''})}catch(e){fastSent=''}};
+    const reopen=(ms)=>{if(left||tRe)return;tRe=setTimeout(()=>{tRe=null;if(left)return;try{client.removeChannel(ch)}catch(e){}open()},ms)};
+    const open=()=>{
+      ch=client.channel('ut-'+name,{config:{presence:{key:pid},broadcast:{self:false}}});const mine=ch;
+      ch.on('presence',{event:'sync'},()=>{if(ch!==mine)return;const st=ch.presenceState();const prev=meta;meta={};for(const k in st){const a=st[k];if(!a||!a.length)continue;let m=a[a.length-1];for(const q of a)if((q._t||0)>(m._t||0))m=q;const p=Object.assign({},m);delete p.presence_ref;meta[k]=p}
+        const now=Date.now();for(const k in fastOf)if(!meta[k]&&now-(fastAt[k]||0)>15000){delete fastOf[k];delete fastAt[k]}
+        if(Object.keys(meta).some(k=>k!==pid&&!prev[k])){fastSent='';if(!tFast)tFast=setTimeout(flushFast,300)}
+        rebuild()});
+      ch.on('broadcast',{event:'f'},({payload})=>{if(ch!==mine||!payload||typeof payload.k!=='string'||payload.k===pid)return;fastOf[payload.k]=Object.assign(fastOf[payload.k]||{},payload.v||{});fastAt[payload.k]=Date.now();rebuild()});
+      ch.subscribe(s=>{if(ch!==mine)return;
+        if(s==='SUBSCRIBED'){ok=true;slowSent='';fastSent='';flushSlow();flushFast();conn.forEach(f=>f(true));if(first){first(true);first=null}}
+        else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'||s==='CLOSED'){ok=false;conn.forEach(f=>f(false));if(first){first(false);first=null}reopen(s==='CLOSED'?1500:4000)}})};
+    const ready=new Promise(res=>{first=res});open();
     const api={name,ready,
       presence(patch){let s=false,f=false;for(const k in patch){const tgt=FAST_KEYS.has(k)?fast:slow;if(FAST_KEYS.has(k))f=true;else s=true;if(patch[k]===null||patch[k]===undefined)delete tgt[k];else tgt[k]=patch[k]}
         if(s&&!tSlow)tSlow=setTimeout(flushSlow,Math.max(0,350-(Date.now()-lastSlow)));
@@ -3669,10 +3674,12 @@ function supaRoomFactory(url,key,pid){
       onPeers(){return()=>{}},
       onConnection(fn){conn.push(fn);setTimeout(()=>fn(ok),0);return()=>{}},
       connected(){return ok},
-      async leave(){clearTimeout(tSlow);clearTimeout(tFast);ok=false;try{await ch.untrack()}catch(e){}try{await client.removeChannel(ch)}catch(e){}},
+      resync(){if(!ok){reopen(200);return}slowSent='';fastSent='';flushSlow(true);flushFast()},
+      async leave(){left=true;clearTimeout(tSlow);clearTimeout(tFast);clearTimeout(tRe);ok=false;try{await ch.untrack()}catch(e){}try{await client.removeChannel(ch)}catch(e){}},
       async join(n){const r=mk(n,170);const okj=await Promise.race([r.ready,new Promise(res=>setTimeout(()=>res(false),9000))]);if(!okj){r.leave();throw{code:'upstream_error'}}return r}};
-    const ka=setInterval(()=>{if(ok&&Object.keys(fast).length){fastSent='';flushFast()}},4000);
-    const lv=api.leave;api.leave=async()=>{clearInterval(ka);return lv()};
+    const ka=setInterval(()=>{if(left)return;if(!ok){reopen(500);return}if(Object.keys(fast).length){fastSent='';flushFast()}if(Date.now()-lastSlow>12000&&Object.keys(slow).length)flushSlow(true)},4000);
+    const vis=()=>{try{if(document.visibilityState==='visible')api.resync()}catch(e){}};try{document.addEventListener('visibilitychange',vis);addEventListener('online',vis)}catch(e){}
+    const lv=api.leave;api.leave=async()=>{clearInterval(ka);try{document.removeEventListener('visibilitychange',vis)}catch(e){}return lv()};
     rebuild();return api};
   return mk('lobby',250);
 }
@@ -5590,6 +5597,38 @@ async function diaryMenu(){while(true){const c=await choose('DIARIO',['Bestiario
   return _in15()}}
 {const _wu15=worldUpdate;worldUpdate=function(){_wu15();if(FR%90||UI.busy()||BT||GS!=='world'||!S)return;for(const a of ACH){if(S.fl['ach:'+a[0]])continue;let ok=false;try{ok=!!a[3]()}catch(e){}if(ok){S.fl['ach:'+a[0]]=1;S.g+=25;AU.sfx('save');UI.toast('LOGRO: '+a[1]+' (+25 bellotas)','#ffe040');saveGame();break}}}}
 {const _dw15=drawWorld;drawWorld=function(){_dw15();if(WT.zcard)try{drawZCard()}catch(e){X.globalAlpha=1}}}
+
+// =================================================================== EXT16: multiplayer comfort (status, party HUD, quick chat, regroup, gifts, visible pets) + zone intro pan
+// ------------------------------------------------ zone intro: the camera shows what awaits, then returns to you
+{const _er16=enterRoom;enterRoom=function(){const had=!!WT.zcard,res=_er16.apply(this,arguments);try{WT.cam=null;WT.intro=null;S.vis=S.vis||{};if(ROOM)S.vis[ROOM.id]=1;
+    if(WT.zcard&&!had&&ROOM&&(ROOM.w*16>GW||ROOM.h*16>GH)){let tx=null,ty=null,bd=0;const cand=OBJS.filter(o=>o.k==='boss'&&!o.gone).map(o=>[o.px,o.py]).concat((ROOM.ex||[]).map(e=>[(e.r[0]+e.r[2]/2)*16,(e.r[1]+e.r[3]/2)*16]));
+      for(const[x,y]of cand){const d=Math.hypot(x-PL.x,y-PL.y);if(d>bd){bd=d;tx=x;ty=y}}if(bd>110)WT.intro={t:0,x:tx,y:ty}}}catch(e){}return res}}
+{const _wu16=worldUpdate;worldUpdate=function(){const I=WT.intro;if(I){I.t++;const H=45,D=120,k=I.t<H?0:Math.min(1,(I.t-H)/D),e=k*k*(3-2*k);WT.cam=[lerp(I.x,PL.x,e),lerp(I.y,PL.y,e)];PL.mv=0;if(I.t>=H+D||(I.t>15&&(P_('z')||P_('x')))){WT.intro=null;WT.cam=null}return}_wu16()}}
+// ------------------------------------------------ presence extras: pet, gifts
+{const _lp16=NET.lobbyPatch.bind(NET);NET.lobbyPatch=function(patch,force){if(patch&&patch.pid&&S)patch.pet=S.pet||null;return _lp16(patch,force)}}
+const GIFT={seen:{},out:null};
+function giftTick(){if(!NET.on||!S)return;for(const pr of NET.others()){const g=pr.gf;if(g&&g.to===NET.pid&&!GIFT.seen[g.i]){GIFT.seen[g.i]=1;const ok=ITEMS[g.id]&&S.items.length<12;if(ok){giveThing(['i',g.id]);UI.toast((pr.n||'?')+' te regaló '+ITEMS[g.id].n,'#6f6');saveGame()}NET.lobbyPatch({ga:{to:pr.pid,i:g.i,ok:ok?1:0}},true)}
+    const a=pr.ga,o=GIFT.out;if(a&&o&&a.to===NET.pid&&a.i===o.i){GIFT.out=null;NET.lobbyPatch({gf:null},true);if(a.ok){const k=S.items.indexOf(o.id);if(k>=0)S.items.splice(k,1);UI.toast('Regalo entregado','#6f6');AU.sfx('ok');saveGame()}else UI.toast('No pudo recibirlo (mochila llena)','#f88')}}
+  if(GIFT.out&&Date.now()-GIFT.out.at>12000){GIFT.out=null;NET.lobbyPatch({gf:null},true);UI.toast('El regalo no llegó. Lo conservas.','#aaa')}}
+{const _nt16=NET.tick.bind(NET);NET.tick=function(){_nt16();if(FR%15===0)try{giftTick()}catch(e){}}}
+{const _pm16=playerMenu;playerMenu=async function(p){if(!S.items.length||GIFT.out)return _pm16(p);const c=await choose(p.n+': ¿qué quieres hacer?',['Regalar un objeto','Otras opciones'],true);if(c!==0){if(c===1)return _pm16(p);return}
+  const j=await pickList('REGALAR A '+String(p.n||'?').toUpperCase(),S.items.map(k=>({l:ITEMS[k].n,ic:['i',k]})),{x:60,y:20,w:200,rows:Math.min(10,S.items.length),desc:k=>ITEMS[S.items[k]].d});if(j<0)return;
+  GIFT.out={to:p.pid||p.peer,id:S.items[j],i:Math.random().toString(36).slice(2,8),at:Date.now()};NET.lobbyPatch({gf:{to:GIFT.out.to,id:GIFT.out.id,i:GIFT.out.i}},true);UI.toast('Enviando regalo...','#8cf')}}
+// ------------------------------------------------ quick chat
+const QUICK=['¡Hola!','¡Por aquí!','Espérenme','¡Gracias!','¿Peleamos juntos?','Necesito curarme','¡Bien jugado!','jaja'];
+{const _oc16=openChat;openChat=async function(){if(!NET.on){UI.toast('Chat: solo en línea','#aaa');return}const j=await pickList('CHAT RÁPIDO',QUICK.map(s=>({l:s})).concat([{l:'Escribir...',c:'#8cf'}]),{x:70,y:30,w:180,rows:9});if(j<0)return;if(j>=QUICK.length){_oc16();return}NET.say(QUICK[j]);WT.mySay={s:QUICK[j],until:Date.now()+5000}}}
+// ------------------------------------------------ regroup: jump to a party member in a room you already visited
+{const _pt16=partyMenu;partyMenu=async function(){if(NET.on&&NET.party){const far=NET.partyMembers().filter(m=>m.rm&&m.rm!==S.room&&ROOMS[m.rm]);if(far.length){const c=await choose('GRUPO',far.slice(0,3).map(m=>'Ir con '+String(m.n||'?').slice(0,10)).concat(['Opciones de grupo']),true);if(c<0)return;
+      if(c<far.length){const m=far[c],lob=NET.others().find(o=>o.pid===m.pid);if(!(S.vis&&S.vis[m.rm])){AU.sfx('no');await say([String(m.n||'?')+' está en '+ROOMS[m.rm].n+'.','Todavía no has llegado a ese lugar por tu cuenta, así que no puedes saltar allí.']);return}
+        if(m.inb||(lob&&lob.st==='battle')){await say(['Está en plena batalla. Si eres de su grupo, entrarás a la pelea al llegar.'])}
+        AU.sfx('door');const x=lob&&lob.x!=null?lob.x/16-.5:ROOMS[m.rm].w/2,y=lob&&lob.y!=null?lob.y/16-.5+.6:ROOMS[m.rm].h/2;transition(m.rm,x,y,0);return}}}
+  return _pt16()}}
+// ------------------------------------------------ HUD: connection, party members; other players' pets
+{const _dw16=drawWorld;drawWorld=function(){_dw16();try{gx();const cx=CAMX_world||0,cy=CAMY_world||0;
+    for(const g of NET.ghostsInRoom()){const pr=NET.others().find(o=>o.pid===g.pid);if(pr&&pr.pet&&EN[pr.pet]){const px=g.x-14-cx,py=g.y+2-cy;X.globalAlpha=.9;withScale(px,py,.3,()=>drawEnemy(EN[pr.pet].spr,px,py,FR+px,{}));X.globalAlpha=1}}
+    if(WT.intro||WT.zcard||WT.cut||WT.fin)return;
+    if(typeof NET.backend!=='undefined'||NET.room){const on=NET.on&&NET.connected!==false,n=on?NET.others().length:0;X.globalAlpha=.75;R(GW-8,GH-8,4,4,on?'#40e060':'#e04040');if(on&&n)T(n+' en línea',GW-12,GH-12,'#9fb',14,'right');else if(!on)T('sin conexión',GW-12,GH-12,'#f88',14,'right');X.globalAlpha=1}
+    if(NET.on&&NET.party){const ms=NET.partyMembers().slice(0,3);ms.forEach((m,i)=>{const y=22+i*15,q=Math.max(0,Math.min(1,(m.hp||0)/Math.max(1,m.mh||1)));X.globalAlpha=.8;R(3,y,74,13,'#000');X.globalAlpha=1;T(String(m.n||'?').slice(0,8),6,y,m.inb?'#f88':'#ffe040',14);R(46,y+4,28,4,'#400');R(46,y+4,28*q,4,q>.5?'#30e040':q>.2?'#e8c020':'#e83020');if(m.rm&&m.rm!==S.room&&ROOMS[m.rm])T('→'+ROOMS[m.rm].n.slice(0,16),80,y,'#aaa',12)})}}catch(e){X.globalAlpha=1}}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
