@@ -5636,7 +5636,7 @@ const postGame=()=>!!(S&&(S.fl.end||Object.keys(S.fl).some(k=>k.slice(0,4)==='fi
 let ENX17=0;{const _sE17=startEnding;startEnding=function(){if(!ENX17){ENX17=1;for(const k in EN_TXT)if(k!=='c')EN_TXT[k].push('Detrás de tu cabaña, el muro de código que tapaba el sendero se deshace solo.','Más allá del bosque hay otros como tú: viajeros que también terminaron su historia.')}return _sE17()}}
 ZONES.afuera={fl:'#7c9440',fl2:'#8aa24c',wl:'#7a7468',wt:'#4a463e',vo:'#000',ac:'#ffd070'};ZCARD.afuera=['LAS AFUERAS','Donde terminan todos los bosques'];BGZ.afuera='stars';
 // ------------------------------------------------ way out: behind the cabin
-{const L=ROOMS.ladera;for(const y of[5,6])L.map[y]='..'+L.map[y].slice(2);L.ex.push({r:[0,5,1,2],to:'sendero',at:[42,6.5],d:2});L.obj.push({k:'codewall',x:1,y:5,h:2});}
+{const L=ROOMS.ladera;for(const y of[5,6])L.map[y]='..'+L.map[y].slice(2);L.ex.push({r:[0,5,1,2],to:'sendero',at:[42,5.5],d:2});L.obj.push({k:'codewall',x:1,y:5,h:2});}
 RM('sendero',{n:'Sendero viejo',zone:'bosque',mus:'bosque',enc:'afuera',rate:.5,nw:1,trav:1,map:['TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT','TTTTTT....TTTTTTTT.....TTTTTTTTT....TTTTTTTT','TTTT.......,TTTT.........TTTTT.......,TTTTTT','TT....f.......T....,......TTT..........TTTTT','T.......pppp......pppp.........pppp......TTT','..pppppppp.pppppppp..ppppppppppp..pppppp....','..pppppppp.pppppppp..ppppppppppp..pppppp....','T.....,..............f.........,.........TTT','TT...........TT..........TTT...........TTTTT','TTTT......TTTTTT.......TTTTTTT.....,.TTTTTTT','TTTTTT..TTTTTTTTTT...TTTTTTTTTTT...TTTTTTTTT','TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT'],
   ex:[{r:[43,5,1,2],to:'ladera',at:[2,5.5],d:3},{r:[0,5,1,2],to:'afueras',at:[35,48.5],d:1}],obj:[{k:'sign',x:38,y:3,t:['Un cartel torcido, con letras recién pintadas sobre otras muy viejas:','"SALIDA DEL BOSQUE. Si llegaste hasta aquí, ya terminaste tu historia. Bienvenido a la de todos."']},{k:'memory',x:20,y:3,id:'sendero',t:['Huellas pequeñas en el barro seco, de hace mucho.','Van hacia afuera. No vuelven. Son del tamaño de las de Chester.']}]});
 MEMS.push('sendero');CORR.sendero='ladera';CORR.afueras='ladera';
@@ -5872,6 +5872,8 @@ for(const z in ZDEF){const D=ZDEF[z];zonePair(z,D.n[0],D.n[1],D.mus,z,'cons_'+z,
   return _in18()}}
 {const _dw18=drawObj;}
 {const _wu18=worldUpdate;worldUpdate=function(){_wu18();if(FR%60||UI.busy()||BT||GS!=='world'||!S)return;if(S.lv>=30&&!S.fl.sup30){S.fl.sup30=1;saveGame();say(['¡NIVEL 30! Alcanzas la SUPREMACÍA de tu clase.','Habilidad nueva: '+SUP[S.role][0]+'. '+SUP[S.role][1],'Pasiva permanente: '+SUP[S.role][2]+'.'])}}}
+// unstick: if a spawn point or an old save leaves the player inside something solid, slide to the nearest free spot
+{const _er18=enterRoom;enterRoom=function(){const r=_er18.apply(this,arguments);try{if(ROOM&&!boxFree(PL.x,PL.y,null)){let done=0;for(let d=4;d<=64&&!done;d+=4)for(const[a,b]of[[0,-1],[0,1],[-1,0],[1,0],[-1,-1],[1,-1],[-1,1],[1,1]]){const nx=PL.x+a*d,ny=PL.y+b*d;if(nx>4&&ny>4&&nx<ROOM.w*16-4&&ny<ROOM.h*16-4&&boxFree(nx,ny,null)){PL.x=nx;PL.y=ny;done=1;break}}}}catch(e){}return r}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
