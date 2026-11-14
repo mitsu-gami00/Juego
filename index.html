@@ -6175,10 +6175,10 @@ function withCls(fn){const c=autCls();if(!c)return fn();const r=S.role,sb=S.sub;
 {const _sd21=submitDone;submitDone=function(){if(autOn()&&S.hp>0&&Math.random()<(BT.P.p2?.18:.1)){const tg=Math.max(1,Math.ceil(stats('av').mhp*.25));if(S.hp>tg){S.hp=tg;AU.sfx('no');UI.shake=6;BT.L.fx.push({k:'hpdrag2',t:0,d:90})}}_sd21()}}
 {const _db21=drawBattle;drawBattle=function(){if(!(BT&&BT.P.boss==='autor')){_db21();return}withCls(_db21);const L=BT.L,P=BT.P;gx();
   const al=P.al;if(al&&L.ph!=='intro'){al.ai.forEach((a,k)=>{const hx=18+k*22,hy=30+Math.sin(FR*.05+k)*2;X.globalAlpha=.85;try{withScale(hx,hy,a[0]==='claude'?.11:.17,()=>drawEnemy(BOSS[a[0]==='gemini'?'gemA':a[0]].spr,hx,hy,FR,{}))}catch(e){}X.globalAlpha=1});al.tv.forEach((z,k)=>{try{drawCharBig(CONS[z].lk,GW-16-k*20,34+Math.sin(FR*.05+k)*2,0,0,1)}catch(e){}})}
-  if(L.abWarn&&L.ph==='menu'){const w=L.abWarn,x=20+w.i*48,y=180,k=w.t/50;if(FR%8<4){RO(x-2,y-2,48,17,'#ff3030',2)}T('¡!',x+22,y-14,'#ff3030',22,'center');T('¡Va a por '+BTN[w.i]+'!',160,166,'#ff5050',14,'center');const fy=lerp(60,y-34,k*k);R(x+6,fy,32,30,'#d9c2b0');R(x+6,fy,32,3,'#f0dccc');for(let i=1;i<4;i++)R(x+6+i*8,fy+12,1,18,'#a88c7a');RO(x+6,fy,32,30,'#6a4a40',1);R(x+12,fy-60,20,60,P.p2?'#cfd3de':'#1c1d28')}
+  if(L.abWarn&&L.ph==='menu'){const w=L.abWarn,x=20+w.i*48,y=180,k=w.t/50;if(FR%8<4){RO(x-2,y-2,48,17,'#ff3030',2)}T('¡!',x+22,y-14,'#ff3030',22,'center');T('¡Va a por '+BTN[w.i]+'!',160,166,'#ff5050',14,'center');const fy=lerp(60,y-30,k*k);R(x+11,fy-80,22,84,'#e9ecf3');R(x+11,fy-80,5,84,'#bfc5d3');autHand(x+22,fy+4,-Math.PI/2,1,'fist',FR)}
   for(const f of L.fx){if(f.k==='btnbrk'){const x=42+f.i*48;for(let k=0;k<8;k++){const a=k*.8;R(x+Math.cos(a)*f.t*1.6,186+Math.sin(a)*f.t+f.t*f.t*.04,5,2,'#ff9a1a')}T('¡BOTÓN ROTO!',160,150-f.t*.3,'#f44',22,'center')}
-    if(f.k==='afist'){const k=Math.min(1,f.t/8);R(f.x-20,lerp(40,f.y-18,k),40,36,'#d9c2b0');RO(f.x-20,lerp(40,f.y-18,k),40,36,'#6a4a40',1)}
-    if(f.k==='hpdrag2'){T('¡Te arrastra la vida al 25%!',160,184,'#f44',18,'center');const x=lerp(260,60,Math.min(1,f.t/50));R(x,200,26,10,'#d9c2b0');RO(x,200,26,10,'#6a4a40',1)}}
+    if(f.k==='afist'){const k=Math.min(1,f.t/8),fy=lerp(40,f.y-18,k);R(f.x-12,fy-90,24,94,'#e9ecf3');autHand(f.x,fy+4,-Math.PI/2,1.1,'fist',FR)}
+    if(f.k==='hpdrag2'){T('¡Te arrastra la vida al 25%!',160,184,'#f44',18,'center');const x=lerp(300,90,Math.min(1,f.t/50));R(x+8,196,240,16,'#e9ecf3');autHand(x+8,204,0,.75,'pinch',FR)}}
   const c=autCls();if(c)T('CLASE CAMBIADA: '+ROLES[c].n.toUpperCase(),160,2,FR%30<15?'#ff5050':'#fff',14,'center');
   if(P.rt==='p'&&L.ph==='menu'){const k=P.h[0]/P.mh[0];T(k<=.21?'PIEDAD disponible':'Agótalo hasta el 20% · '+Math.round(k*100)+'%',GW-4,100,'#ff80c0',12,'right')}}}
 // ------------------------------------------------ the office
@@ -6241,7 +6241,7 @@ BOSS.autor.pats.push(['a_pluma',{}],['a_grapa',{}],['a_goma',{}],['a_cursor',{}]
 BOSS.autor.flav.push('El muñón parpadea. Se reescribe en otra cosa: una pluma, una grapadora, una goma, un cursor.');BOSS.autor.talk.push('¿Mi mano? Ya no la necesito. Ahora es lo que yo quiera.');
 
 // =================================================================== EXT23: the Author redrawn from the second sketch — shirt only, squared glasses, winged hair; phase 2 = he undoes the top button
-autGo=function(p){if(AUT.pose===p)return;AUT.pose=p;AUT.pt=0;const m={idle:[1.5,160,60],far:[.37,160,22],near:[3.7,160,40],mid:[1.7,146,62],left:[1.55,196,58]}[p]||[1.5,160,60];AUT.zt=m[0];AUT.xt=m[1];AUT.yt=m[2]};
+autGo=function(p){if(AUT.pose===p)return;AUT.pose=p;AUT.pt=0;const m={idle:[1.5,160,60],far:[.33,160,18],near:[3.7,160,40],mid:[1.7,146,62],left:[1.55,196,58]}[p]||[1.5,160,60];AUT.zt=m[0];AUT.xt=m[1];AUT.yt=m[2]};
 AUT.z=AUT.zt=1.5;AUT.y=AUT.yt=60;
 drawAutor=function(t,st){const A=AUT,mad=st&&st.mad,inB=BT&&BT.L.ph==='bullet';if(!inB){autGo('idle');A.form=null}A.pt++;A.z+=(A.zt-A.z)*.09;A.x+=(A.xt-A.x)*.09;A.y+=(A.yt-A.y)*.09;
   if(mad&&A.tr<0)A.tr=0;if(!mad)A.tr=-1;if(A.tr>=0&&A.tr<90)A.tr++;const tr=A.tr,un=mad&&tr<90,open=mad&&tr>=28;
@@ -6252,26 +6252,33 @@ drawAutor=function(t,st){const A=AUT,mad=st&&st.mad,inB=BT&&BT.L.ph==='bullet';i
   const br=Math.sin(t*.04)*.8,sk='#e2cdbc',skd='#c2a694',sh='#e9ecf3',sh2='#bfc5d3',sh3='#9aa1b3',hair='#17121d',hair2='#2a2233',ink='#0c0a12';
   const poly=(pts,c)=>{X.fillStyle=c;X.beginPath();pts.forEach(([a,b],i)=>i?X.lineTo(a,b):X.moveTo(a,b));X.closePath();X.fill()},seg=(a,b,c,d,w,col)=>{X.strokeStyle=col;X.lineWidth=w;X.lineCap='round';X.beginPath();X.moveTo(a,b);X.lineTo(c,d);X.stroke();X.lineCap='butt'};
   X.save();gx();X.translate(A.x+(st&&st.hurt?Math.sin(t*2)*2:0),A.y);X.scale(A.z,A.z);
-  // legs, belt
-  const lg=A.pose==='far'?A.leg:0;for(const s of[-1,1]){const up=s>0?lg*36:0;poly([[s*3,150],[s*31,150],[s*27,282-up],[s*7,282-up]],'#181922');R(s>0?5:-9,152,3,128-up,'#232534');ell(s*18,286-up,14,6,'#0a0a0e');ell(s*14,284-up,5,2,'#3a3a48')}
-  // stump arm (his right, screen left)
-  const fm=A.form,sx=fm?-66+Math.sin(t*.03):-55,sy=(fm?30:100)+br,elx=fm?-63:-52,ely=(fm?60:84)+br;seg(-40,37,elx,ely,12,sh);seg(elx,ely,sx,sy,11,sh);seg(-41,40,elx+1,ely,1,sh2);
-  {const a=Math.atan2(sy-ely,sx-elx),c=Math.cos(a),s2=Math.sin(a),pt=(u,v)=>[sx+c*u-s2*v,sy+s2*u+c*v];poly([pt(-2,-6),pt(5,-5),pt(1,-3),pt(7,-1),pt(2,1),pt(6,4),pt(-2,6)],sh2);const e=pt(2,0);ell(e[0],e[1],4,3,'#3a0c14');
-    for(let i=0;i<7;i++){const h=hash('st'+i+((t/5)|0)),q=pt(3+((h>>4)%8)+((t+i*7)%10),-5+(h%10));X.globalAlpha=.9;R(q[0],q[1],1.6,1.6,['#30ff90','#ff3050','#fff','#30a0ff'][h>>9&3])}X.globalAlpha=1;if(fm){X.save();X.translate(e[0],e[1]);X.scale(.62,.62);autTool(0,0,t);X.restore()}}
+  // back hair (falls behind the neck onto the shoulders)
+  poly([[-27,-20],[-32,8],[-29,30],[-20,41],[20,41],[29,30],[32,8],[27,-20]],'#0f0b14');for(let i=0;i<7;i++){const bx=-24+i*8;poly([[bx-4,34],[bx+4,34],[bx+Math.sin(t*.03+i)*.8,44+(i%2)*3]],'#0f0b14')}
+  // trousers: hips, then two separate legs
+  const lg=A.pose==='far'?A.leg:0;poly([[-28,152],[28,152],[29,182],[4,182],[0,176],[-4,182],[-29,182]],'#181922');for(const s of[-1,1]){const up=s>0?lg*36:0;poly([[s*29,180],[s*3.5,180],[s*7,318-up],[s*25,318-up]],'#181922');poly([[s*29,180],[s*25,180],[s*22,318-up],[s*25,318-up]],s>0?'#101118':'#232534');ell(s*17,322-up,13,6,'#0a0a0e');ell(s*13,320-up,5,2,'#3a3a48')}seg(0,160,0,175,.8,'#0c0c12');
+  // stump arm (his right, screen left): flesh ends at the elbow, a steel socket takes over
+  const fm=A.form,sx=fm?-66+Math.sin(t*.03):-52,sy=(fm?30:104)+br,elx=fm?-64:-50,ely=(fm?62:84)+br;seg(-41,39,elx,ely,17,sh);seg(-45,42,elx-4,ely,1.2,sh2);
+  {const a=Math.atan2(sy-ely,sx-elx),c=Math.cos(a),s2=Math.sin(a),pt=(u,v)=>[elx+c*u-s2*v,ely+s2*u+c*v],L=Math.hypot(sx-elx,sy-ely);poly([pt(-3,-9),pt(3,-9.5),pt(1,-5),pt(5,-2),pt(1,2),pt(4,6),pt(-3,9)],sh2);
+    poly([pt(2,-7),pt(L,-6.5),pt(L,6.5),pt(2,7)],'#5a606e');poly([pt(2,-7),pt(L,-6.5),pt(L,-3.5),pt(2,-4)],'#9aa2b2');for(const u of[4,L*.5,L-3]){poly([pt(u,-8),pt(u+3,-8),pt(u+3,8),pt(u,8)],'#2e323c');poly([pt(u,-8),pt(u+3,-8),pt(u+3,-5),pt(u,-5)],'#6a7080')}
+    const e=pt(L+1,0);ell(e[0],e[1],5.5,5.5,'#1c1f28');ell(e[0],e[1],3.6,3.6,(t>>3)%2?'#40e0ff':'#a0f4ff');X.globalAlpha=.25;ell(e[0],e[1],9,9,'#40e0ff');X.globalAlpha=1;
+    for(const[v,col]of[[-4,'#d03040'],[0,'#3070e0'],[4,'#e0c040']]){const q0=pt(L*.3,v*1.6),q1=pt(L*.62,v*2.4+Math.sin(t*.07+v)*1);seg(q0[0],q0[1],q1[0],q1[1],1,col)}
+    if(!fm&&t%47<5){const q=pt(L+3,0);for(let i=0;i<3;i++)R(q[0]+Math.sin(t+i*2)*5,q[1]+3+i*3,1.5,1.5,'#fff')}
+    if(fm){X.save();X.translate(e[0],e[1]);X.rotate(a-.75);X.scale(.66,.66);autTool(0,0,t);X.restore()}}
   // good arm
-  const ex=lerp(52,34,ik)+(A.pose==='mid'?22:0),ey=lerp(88,62,ik)+br;const armR=()=>{seg(40,37,ex,ey,12,sh);seg(ex,ey,hx,hy,11,sh);seg(lerp(ex,hx,.84),lerp(ey,hy,.84),hx,hy,12,sh2);ell(hx,hy,5.5,5.5,sk);for(let i=0;i<4;i++)seg(hx-3+i*2,hy,hx-3.6+i*2.3,hy+(hy>100?6:-5),2,i%2?sk:skd)};
+  const ex=lerp(51,36,ik)+(A.pose==='mid'?20:0),ey=lerp(88,64,ik)+br,fa=Math.atan2(hy-ey,hx-ex),hp=A.pose==='mid'?'fist':A.idle&&A.idle.k==='glasses'?'point':(ik>.3?'pinch':'hover');
+  const armR=()=>{seg(41,39,ex,ey,17,sh);seg(ex,ey,hx,hy,15,sh);seg(45,42,ex+4,ey,1.2,sh2);seg(lerp(ex,hx,.8),lerp(ey,hy,.8),hx,hy,16,sh2);seg(lerp(ex,hx,.8),lerp(ey,hy,.8),lerp(ex,hx,.82),lerp(ey,hy,.82),17,'#f6f8fc');autHand(hx+Math.cos(fa)*3,hy+Math.sin(fa)*3,fa+Math.PI,.34,hp,t)};
   const front=hy<110;if(!front)armR();
   // shirt
-  poly([[-44,40],[-36,31],[-12,27],[12,27],[36,31],[44,40],[36,70],[33,150],[-33,150],[-36,70]],sh);poly([[20,34],[44,40],[36,70],[33,150],[24,150],[27,70]],sh2);for(const[a,b,c,d]of[[-30,52,-24,74],[-28,96,-20,120],[14,60,22,86],[-10,128,6,146],[20,110,26,134]])seg(a,b,c,d,.8,sh2);
-  R(-3.2,30,6.4,120,'#f6f8fc');R(3.2,30,.8,120,sh2);R(-4,30,.8,120,sh2);for(let i=0;i<7;i++){const by=38+i*16;R(-1.5,by-1.5,3,3,sh3);R(-.8,by-.8,1.6,1.6,'#dfe3ec')}
-  R(-33,147,66,7,'#0c0c12');for(const bx of[-26,-13,13,26])R(bx-1.5,145.5,3,10,'#1c1d28');R(-4,147,8,7,'#b8a040');R(-2,149,4,3,'#0c0c12');
+  poly([[-39,41],[-33,31],[-12,27],[12,27],[33,31],[39,41],[31,72],[28,152],[-28,152],[-31,72]],sh);poly([[18,34],[39,41],[31,72],[28,152],[20,152],[23,72]],sh2);for(const[a,b,c,d]of[[-26,52,-21,74],[-24,96,-17,120],[12,60,19,86],[-9,128,5,146],[17,110,22,134]])seg(a,b,c,d,.8,sh2);
+  R(-3.2,30,6.4,118,'#f6f8fc');R(3.2,30,.8,118,sh2);R(-4,30,.8,118,sh2);for(let i=0;i<7;i++){const by=38+i*16;R(-1.5,by-1.5,3,3,sh3);R(-.8,by-.8,1.6,1.6,'#dfe3ec')}
+  R(-28.5,148,57,7,'#0c0c12');for(const bx of[-22,-11,11,22])R(bx-1.5,145.5,3,10,'#1c1d28');R(-4,148,8,7,'#b8a040');R(-2,150,4,3,'#0c0c12');
   // neck + collar
   R(-6,15,12,16,skd);R(-6,15,12,4,'#a88c7a');
   if(!open){poly([[-12,27],[0,24],[-2,36],[-13,35]],'#f6f8fc');poly([[12,27],[0,24],[2,36],[13,35]],'#f6f8fc');seg(-13,35,-2,36,.8,sh3);seg(13,35,2,36,.8,sh3);if(!(un&&tr>=24)){R(-1.5,27.5,3,3,sh3);R(-.8,28.2,1.6,1.6,'#dfe3ec')}}
   else{poly([[-5,22],[5,22],[1,42],[-1,42]],skd);poly([[-13,26],[-4,22],[-2,40],[-17,38]],'#f6f8fc');poly([[13,26],[4,22],[2,40],[17,37]],'#f6f8fc');seg(-17,38,-2,40,.8,sh3);seg(17,37,2,40,.8,sh3)}
   if(un&&tr>=24&&tr<70){const k=(tr-24)/46,bx=lerp(0,70,k),by=29-Math.sin(k*3.14)*46+k*60;ell(bx,by,2.2,2.2,sh3);ell(bx,by,1.3,1.3,'#fff')}
   // head
-  const tilt=mad?-.04+Math.sin(t*.02)*.02:Math.sin(t*.015)*.025,hd=mad?Math.sin(t*.9)*.3:0;X.save();X.translate(hd,br*.4);X.rotate(tilt);
+  const tilt=mad?-.04+Math.sin(t*.02)*.02:Math.sin(t*.015)*.025,hd=mad?Math.sin(t*.9)*.3:0;X.save();X.translate(hd,br*.4+19);X.rotate(tilt);X.scale(1.1,1.1);X.translate(0,-19);
   // back hair + side locks
   poly([[-30,-22],[-33,-2],[-27,10],[-22,30],[-17,22],[-14,32],[-12,-10]],hair);poly([[30,-22],[33,-2],[27,10],[23,30],[18,22],[14,32],[12,-10]],hair);poly([[12,-10],[18,22],[23,30],[27,10],[20,-4]],hair2);
   // face
@@ -6293,6 +6300,38 @@ drawAutor=function(t,st){const A=AUT,mad=st&&st.mad,inB=BT&&BT.L.ph==='bullet';i
 BOSS.autor.p2txt=['El Autor deja de sonreír.','Se lleva la mano al cuello y se arranca el primer botón de la camisa. Rebota en el suelo como una moneda.','EL AUTOR: Se acabó la reunión.','Sus gafas se agrietan. Por primera vez parece cansado.'];
 BOSS.autor.pats=BOSS.autor.pats.filter(p=>p[0]!=='a_corbata');BOSS.autor.pats.push(['a_botones',{}]);
 BOSS.autor.kill='El Autor cae como cae un edificio. Lo último que hace es ajustarse las gafas rotas.';BOSS.autor.flav[2]='Se ajusta las gafas, se alisa el cuello de la camisa. No te mira a ti: mira su obra.';
+
+// =================================================================== EXT24: the Author's articulated hand + cyborg arm: the socket rebuilds itself into weapons
+function autHand(x,y,rot,s,pose,t){const tp=HPOSE[pose]||HPOSE.hover,SK='#e2cdbc',SD='#a88c7a',SL='#f2e2d4',FAR='#cdb5a2',NAIL='#d8b8a8';X.save();X.translate(x,y);X.rotate(rot);X.scale(s,s);X.lineCap='round';X.lineJoin='round';
+  const seg=(x0,y0,ang,len,w,col,nail)=>{const x1=x0+Math.cos(ang)*len,y1=y0+Math.sin(ang)*len;X.strokeStyle=SD;X.lineWidth=w+1.6;X.beginPath();X.moveTo(x0,y0);X.lineTo(x1,y1);X.stroke();X.strokeStyle=col;X.lineWidth=w;X.beginPath();X.moveTo(x0,y0);X.lineTo(x1,y1);X.stroke();if(nail){const nx=Math.cos(ang),ny=Math.sin(ang);X.strokeStyle=NAIL;X.lineWidth=w*.55;X.beginPath();X.moveTo(x1-nx*3+ny*w*.18,y1-ny*3-nx*w*.18);X.lineTo(x1-nx*.3+ny*w*.18,y1-ny*.3-nx*w*.18);X.stroke()}return[x1,y1]};
+  const finger=(bx,by,cs,i,lens,w,col)=>{let a=Math.PI,x0=bx,y0=by;for(let k=0;k<3;k++){let v=cs[k];if(pose==='hover'&&k===0)v+=Math.max(0,Math.sin(t*.1-i*.9))*.25;a-=v;[x0,y0]=seg(x0,y0,a,lens[k],w-k*.6,col,k===2)}};
+  const LEN=[[15,10,8],[16,11,8],[15,10,7],[12,8,6]],BASE=[[-29,4],[-31,-2],[-30,-7],[-27,-11]],WD=[7,6.6,6.2,5.2];
+  X.fillStyle=SD;X.beginPath();X.moveTo(4,-10);X.lineTo(14,-10.5);X.lineTo(14,11);X.lineTo(4,10.5);X.fill();X.fillStyle=SK;X.beginPath();X.moveTo(4,-9);X.lineTo(14,-9.5);X.lineTo(14,8);X.lineTo(4,7.5);X.fill();
+  finger(BASE[3][0],BASE[3][1],tp.f[3],3,LEN[3],WD[3],FAR);finger(BASE[2][0],BASE[2][1],tp.f[2],2,LEN[2],WD[2],FAR);
+  X.fillStyle=SD;X.beginPath();X.moveTo(5,-10);X.lineTo(-27,-14);X.quadraticCurveTo(-35,-4,-31,9);X.lineTo(-13,13);X.lineTo(5,10);X.fill();X.fillStyle=SK;X.beginPath();X.moveTo(5,-9);X.lineTo(-26,-12.5);X.quadraticCurveTo(-33,-4,-29.5,7.5);X.lineTo(-13,11);X.lineTo(5,8);X.fill();
+  X.strokeStyle=SL;X.lineWidth=1.5;X.beginPath();X.moveTo(0,-6);X.lineTo(-24,-9);X.stroke();X.strokeStyle=SD;X.lineWidth=.8;for(let i=0;i<3;i++){X.beginPath();X.moveTo(-26+i,-8+i*5);X.lineTo(-8,-5+i*4);X.stroke()}
+  finger(BASE[1][0],BASE[1][1],tp.f[1],1,LEN[1],WD[1],SK);finger(BASE[0][0],BASE[0][1],tp.f[0],0,LEN[0],WD[0],SK);for(let i=0;i<4;i++)ell(BASE[i][0],BASE[i][1],2.6,2.6,i>1?FAR:SL);
+  {let a=Math.PI-tp.th[0];let[x1,y1]=seg(-11,9,a,12,8,SK,false);a-=tp.th[1];seg(x1,y1,a,10,7,SK,true);ell(-11,9,4,4,SK)}X.restore();X.lineCap='butt'}
+RECTDRAW.afist=b=>{const hor=Math.abs(b.vx)>Math.abs(b.vy),cx=b.x+b.w/2,cy=b.y+b.h/2;if(hor){R(cx+14,cy-13,340,26,'#e9ecf3');R(cx+14,cy+7,340,6,'#bfc5d3');autHand(cx+16,cy,0,1.22,'fist',FR)}else{R(cx-13,cy-354,26,340,'#e9ecf3');R(cx+7,cy-354,6,340,'#bfc5d3');autHand(cx,cy-16,-Math.PI/2,1.22,'fist',FR)}};
+// tools -> weapons (same slots, new shapes): hoja, cañón, emisor láser, garra, cizalla, pistón
+autTool=function(sx,sy,t){const k=AUT.form;AUT.ft=(AUT.ft||0)+1;const g=Math.min(1,AUT.ft/14),P=(a,b,w,h,c)=>R(a,b,w,h,c),tri=(a,b,c,col)=>{X.fillStyle=col;X.beginPath();X.moveTo(a[0],a[1]);X.lineTo(b[0],b[1]);X.lineTo(c[0],c[1]);X.fill()},ST='#8a92a2',SD='#3a3f4c',SL='#c8d0de',CY=(t>>2)%2?'#40e0ff':'#b0f6ff';
+  X.save();X.translate(sx,sy);X.rotate(.75+Math.sin(t*.06)*.05);
+  if(g<1)for(let i=0;i<10;i++){const h=hash('ft'+i+AUT.ft);P(-4+(h%40),-12+((h>>5)%24),4,2,i%2?ST:CY)}
+  X.scale(g,1);P(0,-6,8,12,SD);P(0,-6,8,3,ST);
+  if(k==='pluma'){P(8,-4,8,8,ST);tri([14,-5],[60,-1],[14,1],SL);tri([14,1],[60,-1],[14,5],ST);X.globalAlpha=.5;tri([12,-8],[66,-1],[12,7],CY);X.globalAlpha=1;P(16,-1,40,1,'#fff')}
+  else if(k==='grapa'){P(8,-8,30,16,ST);P(8,-8,30,4,SL);P(8,4,30,4,SD);for(let i=0;i<3;i++)P(14+i*7,-10,3,3,SD);P(38,-6,8,12,SD);ell(46,0,5,6,'#16181f');ell(46,0,3,4,CY);X.globalAlpha=.35;ell(48,0,9,9,CY);X.globalAlpha=1}
+  else if(k==='goma'){P(8,-3,14,6,ST);for(const a of[-.5,0,.5]){X.save();X.translate(22,0);X.rotate(a);P(0,-1.5,16,3,SL);P(14,-2.5,4,5,SD);X.restore()}ell(30,0,5,5,'#ff3050');ell(30,0,2.5,2.5,'#fff');X.globalAlpha=.3;ell(30,0,11,11,'#ff3050');X.globalAlpha=1}
+  else if(k==='cursor'){const o=.35+.3*Math.sin(t*.2);P(8,-4,10,8,ST);ell(20,0,5,5,SD);for(const a of[-1,0,1]){X.save();X.translate(20,0);X.rotate(a*o);P(0,-1.5,16,3,SL);X.translate(16,0);X.rotate(-a*.9);tri([0,-2],[12,0],[0,2],ST);X.restore()}ell(20,0,2.5,2.5,CY)}
+  else if(k==='tijera'){const o=.26+.22*Math.sin(t*.25);P(8,-3,6,6,ST);for(const s of[-1,1]){X.save();X.translate(14,0);X.rotate(s*o);X.fillStyle=SL;X.beginPath();X.moveTo(0,-2.5);X.lineTo(52,0);X.lineTo(0,3);X.fill();for(let i=0;i<6;i++)tri([6+i*7,s*2],[10+i*7,s*2],[8+i*7,s*5],ST);P(0,-2.5,40,1,'#fff');X.restore()}ell(14,0,3.5,3.5,SD);ell(14,0,1.6,1.6,CY)}
+  else if(k==='sello'){const e=6+4*Math.abs(Math.sin(t*.25));P(8,-3,e+10,6,SL);P(8,-5,8,10,SD);P(16+e,-11,10,22,ST);P(16+e,-11,10,4,SL);for(let i=0;i<4;i++)P(26+e,-11+i*6,3,3,i%2?'#e0c040':'#16181f')}
+  X.restore()};
+RECTDRAW.staple=b=>{X.globalAlpha=.35;R(b.x-2,b.y-2,b.w+4,b.h+4,'#40e0ff');X.globalAlpha=1;R(b.x,b.y,b.w,b.h,'#b0f6ff');R(b.x+1,b.y+1,b.w-2,1,'#fff')};
+RECTDRAW.erase=b=>{X.globalAlpha=.8;R(b.x,b.y,b.w,b.h,'#ff3050');X.globalAlpha=1;if(b.w>b.h)R(b.x,b.y+b.h/2-3,b.w,6,'#fff');else R(b.x+b.w/2-3,b.y,6,b.h,'#fff');for(let i=0;i<5;i++){const h=hash('ls'+i+(FR>>1));R(b.x+(h%Math.max(1,b.w|0)),b.y+((h>>6)%Math.max(1,b.h|0)),2,2,'#ffd0d8')}};
+RECTDRAW.stamp=b=>{R(b.x,b.y,b.w,b.h,'#8a92a2');R(b.x,b.y,b.w,4,'#c8d0de');R(b.x,b.y+b.h-4,b.w,4,'#3a3f4c');for(let i=0;i<b.w;i+=8)R(b.x+i,b.y+b.h-4,4,4,'#e0c040');for(const[a,c]of[[3,3],[b.w-6,3]])R(b.x+a,b.y+c+3,3,3,'#3a3f4c');T('ERROR',b.x+b.w/2,b.y+b.h/2-6,'#16181f',12,'center')};
+BULDRAW2.ink=(b,x,y)=>{X.globalAlpha=.35;ell(x,y,b.r+2,b.r+2,'#40e0ff');X.globalAlpha=1;ell(x,y,b.r,b.r,'#b0f6ff');ell(x,y,b.r*.45,b.r*.45,'#fff')};
+BULDRAW2.click=(b,x,y)=>{if(b.warn&&b.t<b.warn){X.strokeStyle='#ff3050';X.lineWidth=1;X.beginPath();X.arc(x,y,7,0,7);X.moveTo(x-10,y);X.lineTo(x-3,y);X.moveTo(x+3,y);X.lineTo(x+10,y);X.moveTo(x,y-10);X.lineTo(x,y-3);X.moveTo(x,y+3);X.lineTo(x,y+10);X.stroke();return}ell(x,y,3,3,'#ff6070');ell(x,y,1.4,1.4,'#fff')};
+BULDRAW2.pixel=(b,x,y)=>{R(x-2,y-1,4,2,(b.t>>2)&1?'#b0f6ff':'#fff')};
+{const F=BOSS.autor.flav,i=F.findIndex(s=>/muñón parpadea/.test(s));if(i>=0)F[i]='El codo de metal zumba. Las placas se reordenan: hoja, cañón, garra, láser.';F[1]='Su brazo derecho termina en el codo. Lo demás es acero, cables y una luz azul.';const K=BOSS.autor.talk,j=K.findIndex(s=>/Ya no la necesito/.test(s));if(j>=0)K[j]='¿Mi mano? Me fabriqué algo mejor. Tú te quedaste con la vieja.'}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
