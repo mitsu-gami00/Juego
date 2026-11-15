@@ -1,6 +1,6 @@
-# Chester: UNDERTAIL
+# CodeFeelStrong
 
-Juego de rol en el navegador inspirado en Undertale y Deltarune: crea tu animal, elige rol y subclase, y juega en grupos de hasta 4 o en duelos PvP.
+Juego de rol en el navegador con combates de esquivar y perdonar: crea tu animal, elige rol y subclase, y juega en grupos de hasta 4 o en duelos PvP.
 
 ## Jugar
 Abre la página de GitHub Pages de este repositorio. Controles: flechas para moverte, Z aceptar, X cancelar/correr, C menú, T chat. En celular aparece un control táctil.
