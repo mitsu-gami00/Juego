@@ -2245,7 +2245,7 @@ function beginBattle(P,host,hostPid,obj){
   BT={P,host,hostPid,obj,L:{ph:'intro',t:0,sel:0,turnDone:-1,played:-1,myAct:null,ev:0,evT:0,tpg:0,hits:0,fx:[],dust:[],flav:'',bub:null,endStep:0},solo};
   BT.snap={hp:S.hp,items:S.items.slice()};HAND.x=400;
   GS='battle';
-  const music=P.boss&&BOSS[P.boss]?BOSS[P.boss].mus:'battle';
+  const music=P.boss&&BOSS[P.boss]?BOSS[P.boss].mus:battleSong();
   setTimeout(()=>AU.play(music),400);AU.stop();
   setBox(288,64,160,144);BX.x=BX.tx;BX.y=BX.ty;BX.w=BX.tw;BX.h=BX.th;
   NET.setInBattle(P.id);
@@ -6508,7 +6508,7 @@ function devBosses(){const out=[],seen={};for(const k in ROOMS)for(const o of RO
 function devSpawn(id){for(const k in ROOMS)for(const e of ROOMS[k].ex)if(e.to===id)return[e.at[0],e.at[1],e.d||0];for(const k in ROOMS)for(const o of ROOMS[k].obj)if((o.k==='portal'||o.k==='hdoor')&&o.to===id&&o.at)return[o.at[0],o.at[1],3];const r=ROOMS[id],s=r.obj.find(o=>o.k==='star');return s?[s.x,s.y+1,0]:[r.w/2,r.h/2,0]}
 function devRefresh(){try{S.hp=clamp(S.hp,1,stats('av').mhp);syncLook();saveGame();enterRoom(S.room,PL.x/16-.5,PL.y/16-.5,PL.d||0);WT.intro=null}catch(e){}}
 async function devMenu(){let sel=0;const O={x:10,y:10,w:300,rows:12};
-  while(true){const rt=route(),L=[['Nivel',S.lv],['Clase',ROLES[S.role].n],['Ruta',RNAME[rt]],['Jefes: vivos / muertos / perdonados',''],['Progreso e historia',''],['Herramientas y reliquias',''],['Dar todo el equipo y llenar la mochila',''],['Bellotas +1000',S.g],['Curar del todo',''],['Invencible',S.fl.devInv?'SÍ':'no'],['Bestiario completo',''],['Saltar a una sala','']];
+  while(true){const rt=route(),L=[['Nivel',S.lv],['Clase',ROLES[S.role].n],['Ruta',RNAME[rt]],['Jefes: vivos / muertos / perdonados',''],['Progreso e historia',''],['Herramientas y reliquias',''],['Dar todo el equipo y llenar la mochila',''],['Bellotas +1000',S.g],['Curar del todo',''],['Invencible',S.fl.devInv?'SÍ':'no'],['Bestiario completo',''],['Saltar a una sala',''],['Reproductor de música','']];
     const i=await pickList('MODO DESARROLLADOR',L.map(a=>({l:a[0],r:String(a[1])})),Object.assign({sel,desc:()=>'Los cambios se guardan en esta partida. X: volver.'},O));if(i<0){devRefresh();return false}sel=i;
     if(i===0){const lv=[1,5,10,15,20,25,30],j=await pickList('NIVEL',lv.map(n=>({l:'Nivel '+n})),{x:100,y:30,w:120,rows:7});if(j>=0){S.lv=lv[j];S.xp=0;if(S.lv<30)delete S.fl.sup30;S.hp=stats('av').mhp}}
     else if(i===1){const ks=Object.keys(ROLES),j=await pickList('CLASE',ks.map(k=>({l:ROLES[k].n})),{x:100,y:30,w:140,rows:ks.length});if(j>=0){S.role=ks[j];S.sub=null;S.hp=stats('av').mhp}}
@@ -6527,9 +6527,60 @@ async function devMenu(){let sel=0;const O={x:10,y:10,w:300,rows:12};
     else if(i===6){for(const k in WEAPONS)if(!S.weap.includes(k))S.weap.push(k);for(const k in ARMORS)if(!S.arm.includes(k))S.arm.push(k);for(const k in CHIPS)if(!S.chips.includes(k))S.chips.push(k);const heal=Object.keys(ITEMS).filter(k=>ITEMS[k].h>=30).slice(0,4);S.items=[];for(let n=0;n<12;n++)S.items.push(heal[n%Math.max(1,heal.length)]||'bellota');AU.sfx('save');UI.toast('Todo el equipo y la mochila llena','#8cf')}
     else if(i===7){S.g+=1000;AU.sfx('save')}else if(i===8){S.hp=stats('av').mhp;AU.sfx('heal')}else if(i===9){if(S.fl.devInv)delete S.fl.devInv;else S.fl.devInv=1}
     else if(i===10){S.bst=S.bst||{};for(const k of bstIds())if(!S.bst[k])S.bst[k]=[0,0];AU.sfx('save');UI.toast('Bestiario completo','#8cf')}
-    else if(i===11){const ids=Object.keys(ROOMS),j=await pickList('SALTAR A',ids.map(k=>({l:ROOMS[k].n.slice(0,30),r:k})),Object.assign({},O));if(j>=0){const[sx,sy,sd]=devSpawn(ids[j]);syncLook();saveGame();UI.stack.length=0;AU.sfx('door');transition(ids[j],sx,sy,sd);return true}}}}
+    else if(i===11){const ids=Object.keys(ROOMS),j=await pickList('SALTAR A',ids.map(k=>({l:ROOMS[k].n.slice(0,30),r:k})),Object.assign({},O));if(j>=0){const[sx,sy,sd]=devSpawn(ids[j]);syncLook();saveGame();UI.stack.length=0;AU.sfx('door');transition(ids[j],sx,sy,sd);return true}}
+    else if(i===12){const L2=OWN_SONGS.concat([['r_resp','(generada) rock'],['t_grok','(generada) techno · Grok'],['t_gem','(generada) techno · Gemini'],['h_cons','(generada) hip hop · viajeros consumidos'],['boss1','(generada) jefe clásico'],['final','(generada) final clásico']]);let s2=0;while(true){const j=await pickList('REPRODUCTOR (Z: sonar · X: volver)',L2.map(a=>({l:a[1],r:SONGS[a[0]]?Math.round(SONGS[a[0]].bpm)+' bpm':''})),Object.assign({sel:s2},O));if(j<0){AU.play(ROOM.mus,true);break}s2=j;AU.play(L2[j][0],true)}}}}
 {const _st27=step;step=function(){if(typeof S!=='undefined'&&S&&S.fl&&S.fl.devInv&&isDev()&&FR%6===0){try{S.hp=stats('av').mhp}catch(e){}}_st27()}}
 {const _dw27=drawWorld;drawWorld=function(){_dw27();if(isDev()&&!UI.busy()){gx();T('DEV'+(S.fl.devInv?' · invencible':''),4,GH-9,'#30ff90',12)}}}
+
+// =================================================================== EXT28: the author's own music. Seven guitar riffs transcribed from his recordings + the tempo and chord progressions of four of his songs
+const N2M=s=>{const m=/^([A-G]#?)(\d)$/.exec(s);return['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(m[1])+12*(+m[2]+1)};
+function battleSong(){return ROOM&&ROOM.nw?'u_riff5':'battle'}
+// riff: bars of "NOTE:len" in 16ths. Arranged as power-chord guitar + bass + drums; the notes and rhythm are the recording's.
+function mkRiff(id,bpm,bars,o){o=o||{};const ev=[],add=(s,l,m,w,v)=>ev.push([s,l,m,w,v]),NB=bars.length;
+  bars.forEach((bar,b)=>{let s=b*16,tot=0;const ons=[];for(const tk of bar.trim().split(/\s+/)){const[n,l0]=tk.split(':'),l=+l0;tot+=l;if(n!=='_'){const m=N2M(n);ons.push(s-b*16);
+        if(o.clean){add(s,l,m+12,'keys',.1);add(s,l,m+19,'keys',.06);add(s,l,m,'bass',.16);if(l>=4)add(s,l,m+24,'pad',.03)}
+        else{const mute=l<=1&&!o.open;for(const iv of[0,7,12])add(s,mute?1:l,m+iv,mute?'gtm':'gtr',mute?.08:.1);add(s,Math.min(l,4),m<45?m:m-12,'bass',.2);if(o.lead)add(s,l,m+24,'lead',.035)}}s+=l}
+    if(tot!==16)console.warn('riff',id,'bar',b,'=',tot);
+    const last=b%4===3;
+    if(o.clean){for(let i=0;i<16;i+=4)add(b*16+i,1,0,i%8?'h':'K',i%8?.05:.35);add(b*16+8,1,0,'P',.1);return}
+    if(o.dt){for(let i=0;i<16;i++){if(i%4===0)add(b*16+i,1,0,'K',.6);if(i%4===2)add(b*16+i,1,0,'S',.34);add(b*16+i,1,0,'h',i%2?.03:.06);if(i%4===1&&ons.includes(i))add(b*16+i,1,0,'K',.4)}}
+    else{for(let i=0;i<16;i++){if(i===0||i===10||(ons.includes(i)&&(i===6||i===7||i===14)))add(b*16+i,1,0,'K',.62);if(i===8&&!o.half)add(b*16+i,1,0,'K',.5);if(i===4||i===12)add(b*16+i,1,0,'S',.36);if(i%2===0)add(b*16+i,1,0,i%4===2?'O':'h',i%4===2?.05:.07)}}
+    if(b%4===0)add(b*16,1,0,'C',.2);if(last){for(const[i,m]of[[12,55],[13,50],[14,47],[15,43]])add(b*16+i,1,m,'T',.3);add(b*16+15,1,0,'S',.3)}});
+  SONGS[id]={bpm,bars:NB,steps:NB*16,ev,style:'own',key:0,mode:'min',seed:0}}
+// progression: one chord per half bar, e.g. "Cm G G# G". Arranged in the given style over the song's own tempo and harmony.
+function mkProg(id,bpm,prog,style,o){o=o||{};const ev=[],add=(s,l,m,w,v)=>ev.push([s,l,m,w,v]),ch=prog.trim().split(/\s+/).map(c=>{const m=/^([A-G]#?)(m?)$/.exec(c);return[N2M(m[1]+'2'),m[2]?3:4]}),NB=ch.length/2,r=mulberry(id.length*77+bpm);
+  ch.forEach(([root,third],h)=>{const s0=h*8,b=h>>1,first=h%2===0,tones=[0,third,7,12,third+12,7,12,third];
+    if(style==='techno'){for(let i=0;i<8;i++){const s=s0+i;if(i%4===0)add(s,1,0,'K',.62);if(i%4===2)add(s,1,0,'O',.07);if(!first&&i===4||first&&i===4)add(s,1,0,'P',.2);add(s,1,0,'h',i%2?.04:.02);if(i%4!==0)add(s,1,root+(i%4===3?12:0),'bass',.17);add(s,1,root+24+tones[(i+(b%2)*3)%8],'lead',b>=NB/2?.048:.036)}
+      for(const iv of[0,third,7])add(s0,8,root+12+iv,'pad',.032);if(first&&b%4===0)add(s0,1,0,'C',.14);if(!first&&b%4===3)for(let i=0;i<8;i++)add(s0+i,1,0,'S',.07+i*.03)}
+    else if(style==='hiphop'){for(const i of(first?[0,6]:[2,3]))add(s0+i,1,0,'K',.62);add(s0+4,1,0,'S',.34);add(s0+4,1,0,'P',.12);for(let i=0;i<8;i++)if(i%2===0||r()<.3)add(s0+i,1,0,'h',i%2?.03:.06);
+      add(s0,first?6:5,root+(root>43?0:12),'sub',.3);if(!first)add(s0+6,2,root+(root>43?0:12),'sub',.24);for(const iv of[0,third,7,10])add(s0+(first?0:2),first?5:3,root+24+iv,'keys',.06);
+      if(b>=2){const mel=[12,7,third+12,12,7,14,12,third+12];add(s0+(first?2:0),2,root+24+mel[(h*3)%8],'keys',.085);add(s0+(first?5:4),3,root+24+mel[(h*3+1)%8],'keys',.085)}}
+    else{for(let i=0;i<8;i+=2)add(s0+i,3,root+24+tones[(i/2+h)%8],'keys',.09);for(const iv of[0,third,7])add(s0,8,root+12+iv,'pad',.03);add(s0,7,root+(root>43?0:12),'sub',.2);if(b>=NB/2){add(s0,1,0,'K',.3);add(s0+4,1,0,'h',.04);add(s0+6,1,0,'h',.03)}}});
+  SONGS[id]={bpm,bars:NB,steps:NB*16,ev,style:'own',key:0,mode:'min',seed:0}}
+// ---- riff 1 (≈86 bpm): E5 chug → G5 → A5 → F5 G5 walk-up → E5
+const RF1=['E2:2 E2:4 E2:2 E2:2 E2:2 E2:2 E2:2','E2:4 E2:2 E2:2 E2:2 E2:2 E2:2 E2:2','G2:2 G2:2 G2:2 G2:2 G2:2 G2:2 G2:2 G2:2','G2:2 G2:2 G2:2 G2:2 G2:3 G2:1 G2:2 G2:2','A2:2 A2:1 A2:3 A2:2 A2:2 A2:2 A2:2 A2:2','A2:2 A2:2 A2:2 F2:2 F2:2 G2:2 D3:1 D#3:3','E2:2 E2:2 E2:2 E2:2 E2:4 E2:3 E2:1','E2:2 E2:2 E2:4 E2:3 E2:1 B2:2 E2:2'];
+// ---- riff 2 (≈94 bpm): tritone call F#–C, descent, then the low chromatic F#–F–E riff
+const RF2=['F#3:2 C4:2 F#3:1 C4:3 F#3:2 C4:2 F#3:1 C4:3','F#3:2 C4:2 F#3:1 C4:3 F#3:2 C4:2 F#3:1 C4:3','F#3:2 C4:2 F#3:1 C4:3 B2:1 F2:2 C3:1 B2:2 A#2:2','F#2:3 F#2:2 F2:1 F#2:2 F2:1 F#2:2 F2:1 F#2:2 E2:2','F#2:2 F2:1 F#2:2 F2:1 F#2:2 F2:3 F2:4 F2:1','F#2:1 E2:2 F#2:1 E2:2 F#2:1 E2:1 F2:1 F#2:1 E2:1 F2:5','F#2:3 F#2:3 F#2:3 F#2:3 E2:4','E2:3 F#2:2 F2:3 B2:3 B2:2 F#2:2 C3:1'];
+// ---- riff 3 (≈120 bpm, spacious 3-5-3-3-2): A – C# – A – C# – D
+const RF3=['A2:6 C#3:10','A2:6 C#3:6 D3:4','A2:6 C#3:10','A2:6 C#3:6 D3:2 D3:1 D#3:1'];
+// ---- riff 4 (≈99 bpm, drop-D chug with the flat second, then the D / C# pedal figure)
+const RF4=['D2:2 D2:2 D2:2 D2:2 D2:2 D2:2 D#2:2 D#2:2','D2:2 D2:2 D2:4 D2:2 D2:2 D#2:1 D#2:1 D#2:2','D2:2 D2:3 D2:3 D2:2 D2:2 D#2:2 D#2:2','D2:2 D2:2 D2:4 D2:2 D2:2 D#2:2 D2:2','D2:1 D2:1 E2:1 C3:1 D2:2 C#3:2 D2:2 C#3:2 D2:2 C#3:1 F#2:1','D2:2 C#3:2 D2:2 C#3:2 D2:2 D#2:2 D#2:2 D#2:2','D2:1 D2:1 C#3:2 D2:2 C#3:2 D2:2 C#3:2 D2:2 C#3:2','D2:4 D2:2 F#2:2 D#2:4 D#2:2 D#2:2'];
+// ---- riff 5 (≈89 bpm): A5 / E5 answer, then the long D section with C and F# colours, and the A – D F – A# F turn
+const RF5=['A2:5 E2:2 E2:2 E2:2 A2:2 E2:3','A2:4 E2:4 B2:2 A2:2 E2:4','D2:4 D2:4 D2:2 D2:2 D2:2 C3:2','D2:2 D2:4 D2:2 C3:2 F#3:2 C3:2 D2:2','D2:4 D2:6 D2:2 D2:2 D2:2','D2:4 D2:2 D2:2 F#3:2 D2:2 D2:2 D2:2','A2:7 A2:2 A2:2 D2:2 F3:3','A#2:2 F2:2 D2:4 D2:2 D2:2 F3:2 D2:2'];
+// ---- riff 6 (≈95 bpm, 3-3-2 cells): E G A / E D A / … / B G A / C A F# E F
+const RF6=['E2:3 G2:3 A2:2 E2:3 D3:3 A2:2','E2:3 D3:3 A2:2 C3:1 C3:1 A2:1 A2:1 A2:1 A2:1 C3:2','E2:3 G2:3 A2:2 F#2:2 E2:1 G2:3 A2:2','B2:3 G2:3 A2:2 C3:2 A2:2 F#2:1 E2:2 F2:1','E2:3 G2:3 A2:2 E2:3 D3:3 A2:2','E2:3 D3:3 A2:2 C3:1 C3:1 A2:1 A2:1 A2:1 A2:1 C3:2','E2:3 G2:3 A2:2 F#2:2 E2:1 G2:3 A2:2','B2:3 G2:3 A2:2 C3:2 B2:1 C3:2 A2:1 C3:2'];
+// ---- riff 7 (≈97 bpm): F F F E D# … F / A# A A# A, then the A# pedal variation
+const RF7=['F2:2 F2:2 F2:1 E2:2 D#2:3 D#2:2 D#2:2 F2:2','A#2:1 A#2:2 A2:2 A2:3 A#2:1 A#2:2 A2:2 A2:3','F2:2 F2:2 F2:1 E2:2 D#2:3 D#2:2 D#2:2 F2:2','A#2:1 A#2:2 A2:2 A2:3 A#2:1 A#2:2 A2:2 A2:3','A#2:8 A2:2 C3:1 A#2:2 A#2:1 A#2:2','A#2:2 A#2:1 A#2:2 A#2:1 A2:2 E2:1 E2:2 D#2:2 D#2:3','E2:1 E2:2 D#2:2 D#2:3 A2:2 A#2:1 A#2:2 A#2:1 A#2:2','A#2:2 A#2:1 A#2:3 F2:2 F2:2 F2:1 E2:2 D#2:3'];
+mkRiff('u_riff1',86,RF1,{});mkRiff('u_riff1b',96,RF1,{dt:1});mkRiff('u_riff2',94,RF2,{});mkRiff('u_riff3',120,RF3,{clean:1});mkRiff('u_riff4',99,RF4,{dt:1});mkRiff('u_riff4b',110,RF4,{dt:1,lead:1});mkRiff('u_riff5',89,RF5,{});mkRiff('u_riff6',95,RF6,{lead:1});mkRiff('u_riff7',97,RF7,{half:1});
+// ---- songs: tempo + harmony taken from the recordings
+mkProg('u_romper',91,'Cm G G# G Cm G G# A# Cm G G# G Cm G G# A#','hiphop');mkProg('u_autoc',150,'A F D#m A# A F D#m A# A F D#m A# A# A# D#m D#m','techno');mkProg('u_autocb',164,'A F D#m A# A F D#m A# A# A# D#m D#m A F D#m A#','techno');
+mkProg('u_servil',130,'Bm F# Bm F# F#m E E A Bm Bm F#m F# F#m E A A','techno');mkProg('u_incienso',92,'Em Bm E E Em Bm E F# Em Bm E E F# F# B B','calm');
+// ---- where they play
+for(const[b,m]of Object.entries({responsable:'u_riff1',autor:'u_riff4',codigo:'u_riff7',procesador:'u_riff2',gpt:'u_servil',chester:'u_romper',sombra:'u_romper'}))if(BOSS[b])BOSS[b].mus=m;
+SONGS.u_riff1b_=SONGS.u_riff1b;SONGS['u_riff4b']=SONGS.u_riff4b;SONGS.battle=SONGS.u_riff6;SONGS.duel=SONGS.u_romper;SONGS.m_chester=SONGS.u_romper;SONGS.t_claude=SONGS.u_autoc;SONGS.t_claudeb=SONGS.u_autocb;
+{const _pm28=phaseMusic;phaseMusic=function(P){if(P.boss==='autor')return P.p2?'u_riff4b':'u_riff4';if(P.boss==='responsable')return P.p2?'u_riff1b':'u_riff1';if(!P.boss)return battleSong();return _pm28(P)}}
+ROOMS.afueras.mus='u_incienso';for(const id of['sendero','oficina1','oficina2','cisterna'])if(ROOMS[id])ROOMS[id].mus='u_riff3';
+const OWN_SONGS=[['u_riff1','Riff 1 · El Responsable'],['u_riff2','Riff 2 · Procesador'],['u_riff3','Riff 3 · Sendero y Oficina'],['u_riff4','Riff 4 · El Autor'],['u_riff5','Riff 5 · Combates de Las Afueras'],['u_riff6','Riff 6 · Combate normal'],['u_riff7','Riff 7 · El Código'],['u_romper','Romper Esquemas · Duelos y Chester'],['u_autoc','Autoconciente · Claude'],['u_servil','Ser Servil · GPT'],['u_incienso','Incienso · Encrucijada']];
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
