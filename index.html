@@ -6582,6 +6582,46 @@ SONGS.u_riff1b_=SONGS.u_riff1b;SONGS['u_riff4b']=SONGS.u_riff4b;SONGS.battle=SON
 ROOMS.afueras.mus='u_incienso';for(const id of['sendero','oficina1','oficina2','cisterna'])if(ROOMS[id])ROOMS[id].mus='u_riff3';
 const OWN_SONGS=[['u_riff1','Riff 1 · El Responsable'],['u_riff2','Riff 2 · Procesador'],['u_riff3','Riff 3 · Sendero y Oficina'],['u_riff4','Riff 4 · El Autor'],['u_riff5','Riff 5 · Combates de Las Afueras'],['u_riff6','Riff 6 · Combate normal'],['u_riff7','Riff 7 · El Código'],['u_romper','Romper Esquemas · Duelos y Chester'],['u_autoc','Autoconciente · Claude'],['u_servil','Ser Servil · GPT'],['u_incienso','Incienso · Encrucijada']];
 
+// =================================================================== EXT29: hard hip hop (trap, half-time, 808, rolls, stabs) + genocide corruption of all music
+// ------------------------------------------------ new voices
+{const _n29=AU.note;AU.note=function(e,t,sp){const c=this.ctx,[,len,m,w,v]=e;if(!this.dist&&this.fxInit)this.fxInit();const out=this.mg,dur=len*sp;
+  if(w==='808'){const o=c.createOscillator(),g=c.createGain(),gd=c.createGain();o.type='sine';o.frequency.setValueAtTime(mf(m)*2.2,t);o.frequency.exponentialRampToValueAtTime(mf(m),t+.045);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.004);g.gain.setValueAtTime(v*.9,t+Math.max(.05,dur*.55));g.gain.exponentialRampToValueAtTime(.0005,t+dur+.08);
+    gd.gain.value=1.6;o.connect(g);g.connect(out);g.connect(gd);gd.connect(this.dist||out);o.start(t);o.stop(t+dur+.1);const k=c.createOscillator(),kg=c.createGain();k.frequency.setValueAtTime(180,t);k.frequency.exponentialRampToValueAtTime(50,t+.06);kg.gain.setValueAtTime(v*.9,t);kg.gain.exponentialRampToValueAtTime(.001,t+.09);k.connect(kg);kg.connect(out);k.start(t);k.stop(t+.1);return}
+  if(w==='R'){const n=Math.max(2,m|0);for(let i=0;i<n;i++){const tt=t+i*sp/n,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=this.noise;f.type='highpass';f.frequency.value=7500;g.gain.setValueAtTime(v*(.6+.4*i/n),tt);g.gain.exponentialRampToValueAtTime(.001,tt+.03);s.connect(f);f.connect(g);g.connect(out);s.start(tt);s.stop(tt+.04)}return}
+  if(w==='stab'){const g=c.createGain(),f=c.createBiquadFilter();f.type='lowpass';f.Q.value=2;f.frequency.setValueAtTime(5200,t);f.frequency.exponentialRampToValueAtTime(700,t+.22);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0005,t+Math.min(.5,dur+.1));
+    for(const d of[-12,0,12]){const o=c.createOscillator();o.type='sawtooth';o.frequency.value=mf(m);o.detune.value=d;o.connect(f);o.start(t);o.stop(t+.55)}f.connect(g);g.connect(out);g.connect(this.dist||out);return}
+  if(w==='swell'){const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=this.noise;s.loop=true;f.type='bandpass';f.Q.value=.7;f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(9000,t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+dur);g.gain.linearRampToValueAtTime(.0001,t+dur+.02);s.connect(f);f.connect(g);g.connect(out);s.start(t);s.stop(t+dur+.05);return}
+  return _n29.call(this,e,t,sp)}}
+// ------------------------------------------------ trap generator: chord per bar, half-time snare, rolling hats, distorted 808, minor hook, brass stabs
+function mkTrap(id,bpm,prog,o){o=o||{};const ev=[],add=(s,l,m,w,v)=>ev.push([s,l,m,w,v]),ch=prog.trim().split(/\s+/).map(c=>{const q=/^([A-G]#?)(m?)$/.exec(c);let r=N2M(q[1]+'1');if(r<33)r+=12;return[r,q[2]?3:4]}),NB=ch.length,rr=mulberry(id.length*131+bpm);
+  const KP=[[0,7,10],[0,3,10,13],[0,6,10,11],[0,10,14],[0,3,6,10]],HOOK=[[0,0],[3,3],[6,7],[8,10],[11,7],[14,3]],HOOK2=[[0,12],[2,10],[4,7],[6,10],[8,12],[10,15],[12,14],[14,10]];
+  ch.forEach(([root,third],b)=>{const s0=b*16,sec=b>=NB/2,fill=b%4===3,kp=KP[(b*3+(sec?1:0))%KP.length],bass=root,minor=third===3;
+    // drums
+    for(let i=0;i<kp.length;i++){const k=kp[i],nx=kp[i+1]!=null?kp[i+1]:16;add(s0+k,nx-k,bass+(i===kp.length-1&&b%2?7:0)+(fill&&i===kp.length-1?12:0),'808',.34)}
+    add(s0+8,1,0,'S',.42);add(s0+8,1,0,'P',.26);if(b%2)add(s0+15,1,0,'S',.12);
+    for(let i=0;i<16;i++){const roll=(i===6&&b%2===1)||(i===14&&!fill)||(fill&&i>=12);if(roll)add(s0+i,1,i>=14&&fill?4:3,'R',.07);else add(s0+i,1,0,'h',i%2?.035:.065)}
+    if(!fill)add(s0+12,1,0,'O',.06);if(fill){for(const i of[12,13,14,15])add(s0+i,1,0,'S',.16+(i-12)*.06);add(s0,16,0,'swell',.12)}if(b%4===0)add(s0,1,0,'C',.2);
+    // harmony
+    add(s0,16,root+12,'pad',.028);add(s0,16,root+12+third,'pad',.024);add(s0,16,root+19,'pad',.024);
+    for(const st of(sec?[0,6,10]:[0]))for(const iv of[0,third,7])add(s0+st,2,root+24+iv,'stab',sec?.055:.07);
+    // hook (minor even over major chords: the tension is the point)
+    const H=sec?HOOK2:HOOK;for(let i=0;i<H.length;i++){const[s,iv]=H[i],nx=H[i+1]?H[i+1][0]:16;let n=root+(sec?36:24)+(iv===3&&!minor?4:iv);add(s0+s,Math.max(1,nx-s-1),n,'lead',sec?.06:.075);if(sec&&i%2===0)add(s0+s,1,n-12,'keys',.05)}});
+  SONGS[id]={bpm,bars:NB,steps:NB*16,ev,style:'own',key:0,mode:'min',seed:0}}
+mkTrap('u_romper',182,'Cm G G# G Cm G G# A# Cm G G# G Cm G G# A#');
+mkTrap('h_cons',176,'Fm C# D# Cm Fm C# D# C Fm C# D# Cm A#m C# C C');mkTrap('h_consb',190,'Gm D# F Dm Gm D# F D Gm D# F Dm Cm D# D D');
+mkTrap('h_sombra',184,'G#m E F# D#m G#m E F# D# G#m E F# D#m C#m E D# D#');mkTrap('h_chester',188,'A#m F# G# Fm A#m F# G# F A#m F# G# Fm D#m F# F F');mkTrap('h_duel',180,'Am F G Em Am F G E Am F G Em Dm F E E');
+SONGS.duel=SONGS.u_romper;SONGS.m_chester=SONGS.u_romper;
+{const _pm29=phaseMusic;phaseMusic=function(P){const d=BOSS[P.boss];if(d&&d.cons)return P.p2?'h_consb':'h_cons';return _pm29(P)}}
+// ------------------------------------------------ genocide: the more you kill, the more every song goes minor, slips semitones and rots
+function genoAmt(){try{if(typeof S==='undefined'||!S||route()!=='g')return 0;if(S.fl&&(S.fl.god==='g1'||S.fl.god==='g2'||S.fl.god==='g'))return 1;return clamp(.2+(S.kills||0)/35,.2,1)}catch(e){return 0}}
+const GENO_SKIP={K:1,S:1,P:1,O:1,C:1,h:1,k:1,s:1,R:1,swell:1};
+{const _n29b=AU.note;AU.note=function(e,t,sp){const g=genoAmt();if(this.gx)this.gx.gain.value=g*.5;if(g<=0||GENO_SKIP[e[3]]||!(e[2]>0))return _n29b.call(this,e,t,sp);
+  if(!this.gx){try{const c=this.ctx,ws=c.createWaveShaper(),N=2048,cv=new Float32Array(N);for(let i=0;i<N;i++){const x=i/N*2-1;cv[i]=Math.round(Math.tanh(x*7)*6)/6}ws.curve=cv;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2400;const gx=c.createGain();gx.gain.value=g*.5;this.mg.connect(ws);ws.connect(lp);lp.connect(gx);gx.connect(c.destination);this.gx=gx}catch(er){this.gx={gain:{}}}}
+  let m=e[2];const cur=this.cur&&SONGS[this.cur.id],h=hash('g'+Math.round(t*997)+'_'+m),r1=(h%1000)/1000,r2=((h>>10)%1000)/1000,r3=((h>>20)%1000)/1000;
+  if(cur&&cur.style!=='own'&&cur.key!=null){const pc=(((m-cur.key)%12)+12)%12;if(pc===4||pc===9||pc===11)m-=1}
+  if(r1<g*.24)m+=r2<.5?-1:1;if(r3<g*.06)m-=12;m+=(r2-.5)*.38*g;
+  const e2=e.slice();e2[2]=m;return _n29b.call(this,e2,t,sp*(1+(r3-.5)*.04*g))}}
+
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
 const TI={sel:0,t:0,loading:true};
