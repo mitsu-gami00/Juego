@@ -6497,13 +6497,13 @@ function bossDown(P,e,killed){try{const pre=P.pre&&P.pre.t===P.turn?P.pre.enc:P.
   else{for(const[i,m]of[[0,60],[1,64],[2,67],[3,72],[4,76]])tone('triangle',mf(m),mf(m),.1+i*.13,1.1,.16);tone('sine',mf(48),mf(48),.1,1.6,.2)}}catch(er){}}
 
 // =================================================================== EXT27: developer mode — name the character "MitsuGami" on the title screen
-const isDev=()=>!!(S&&S.nick&&S.nick.trim().toLowerCase()==='mitsugami');
+const isDev=()=>!!(S&&S.solo&&S.nick&&S.nick.trim().toLowerCase()==='mitsugami');
 PAUSE_D.DEV=()=>'Editar personaje, ruta, jefes y saltar de sala';
 {const _mi=menuIcon;menuIcon=function(k,x,y){if(k==='DEV'){R(x+2,y+2,12,12,'#101820');RO(x+2,y+2,12,12,'#30ff90',1);T('>_',x+3,y+2,'#30ff90',12);return}_mi(k,x,y)}}
 openPause=async function(){AU.sfx('sel');let sel=0;
-  while(true){const items=['OBJETOS','ESTADO','EQUIPO','MAPA','DIARIO','GRUPO','AJUSTES'];if(S.fl.end)items.push('BATALLA');if(isDev())items.push('DEV');items.push('TÍTULO');
+  while(true){const items=['OBJETOS','ESTADO','EQUIPO','MAPA','DIARIO'];if(!S.solo)items.push('GRUPO');items.push('AJUSTES','CUENTA');if(S.fl.end)items.push('BATALLA');if(isDev())items.push('DEV');items.push('TÍTULO');
     const i=await pauseScreen(items,sel);if(i<0)return;sel=i;const k=items[i];
-    if(k==='OBJETOS')await itemsMenu();else if(k==='ESTADO')await statusScreen();else if(k==='EQUIPO')await equipMenu();else if(k==='MAPA')await mapScreen();else if(k==='DIARIO')await diaryMenu();else if(k==='GRUPO')await partyMenu();else if(k==='AJUSTES')await settingsMenu();
+    if(k==='OBJETOS')await itemsMenu();else if(k==='ESTADO')await statusScreen();else if(k==='EQUIPO')await equipMenu();else if(k==='MAPA')await mapScreen();else if(k==='DIARIO')await diaryMenu();else if(k==='GRUPO')await partyMenu();else if(k==='AJUSTES')await settingsMenu();else if(k==='CUENTA')await accountMenu();
     else if(k==='BATALLA'){if(await arenaMenu())return}else if(k==='DEV'){if(await devMenu())return}
     else if(k==='TÍTULO'){const c=await choose('¿Guardar y volver al título para cambiar de personaje?',['Sí','No']);if(c===0){saveGame();setTimeout(()=>location.reload(),600);return}}}};
 function devBosses(){const out=[],seen={};for(const k in ROOMS)for(const o of ROOMS[k].obj)if(o.k==='boss'&&o.id!=='dummy'&&BOSS[o.id]&&!seen[o.id]){seen[o.id]=1;out.push([o.id,ROOMS[k].n])}out.push(['autor','La Oficina · Despacho']);return out}
@@ -6655,6 +6655,109 @@ function voiceBlip(p,ch,i,at){const c=AU.ctx;if(!c)return;if(i%(p.every||2))retu
 // hook into the dialog box: replace the shared blip with the speaker's voice
 {const _say30=say;say=function(lines,opt){const pr=_say30(lines,opt),top=UI.stack[UI.stack.length-1];if(top&&top.lines&&top.update&&!top.__v){top.__v=1;const up=top.update;top.update=function(){const L=this.lines[this.i]||'',c0=this.c;const sf=AU.sfx;AU.sfx=function(n){if(n!=='blip')return sf.apply(AU,arguments)};try{up.call(this)}finally{AU.sfx=sf}
       if(this.c>c0&&this.i<this.lines.length&&L===(this.lines[this.i]||'')){if(this.__vl!==this.i){this.__vl=this.i;this.__vp=voiceOf(L,this.opt)}const ch=L[this.c-1]||' ';if(ch!==' '&&/[^\s.,!?¡¿…*()\-"]/.test(ch))voiceBlip(this.__vp,ch,this.c)}}}return pr}}
+
+// =================================================================== EXT31: single-player mode, account achievements, cloud saves everywhere, chat filter + emotes, credits, connection log
+KMAP.v='v';KMAP.V='v';
+// ------------------------------------------------ single-player mode
+let PENDING_SOLO=0;
+{const _ns=newSave;newSave=function(){const s=_ns();if(PENDING_SOLO)s.solo=1;return s}}
+{const _sn=startNew;startNew=async function(){TI.busy=true;const c=await choose('¿Cómo quieres jugar con este personaje?',['En línea','Un jugador']);TI.busy=false;if(c<0)return;PENDING_SOLO=c===1?1:0;
+  if(c===1)await say(['MODO UN JUGADOR: nadie te verá ni podrás ver a nadie. Sin grupos, duelos ni chat.','Es el único modo donde funcionan los trucos de desarrollador. La elección es para siempre en este personaje.']);
+  try{return await _sn()}finally{PENDING_SOLO=0}}}
+{const _tk=NET.tick.bind(NET);NET.tick=function(){if(S&&S.solo)return;_tk()}}
+{const _ot=NET.others.bind(NET);NET.others=function(){if(S&&S.solo)return[];return _ot()}}
+{const _oc=openChat;openChat=async function(){if(S&&S.solo){UI.toast('Modo un jugador: sin chat','#aaa');return}return _oc()}}
+{const _pm=partyMenu;partyMenu=async function(){if(S&&S.solo){await say(['Modo un jugador: sin grupos ni duelos.']);return}return _pm()}}
+{const _dt=drawTitle;drawTitle=function(){_dt();if(TI.loading&&TI.t<400)return;for(let i=0;i<3;i++){const d=slotData(i);if(d&&d.solo){const y=92+i*34;T('UN JUGADOR',GW-48,y+3,'#8cf',14,'right')}}T('V: créditos',GW-6,GH-10,'#555',14,'right')}}
+{const _tu=titleUpdate;titleUpdate=function(){if(!TI.busy&&!(TI.loading&&TI.t<400)&&P_('v')){TI.busy=true;creditsScreen().then(()=>TI.busy=false);return}_tu()}}
+// ------------------------------------------------ cloud: claude.ai keeps its own db; GitHub Pages uses Supabase through three functions (see supabase_guardado.sql)
+const ACCT_KEY='cfs_acct';
+function acctCode(){let c=null;try{c=localStorage.getItem(ACCT_KEY)}catch(e){}if(!c||c.length<16){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=new Uint32Array(20);try{crypto.getRandomValues(r)}catch(e){for(let i=0;i<20;i++)r[i]=Math.random()*1e9}c='';for(let i=0;i<20;i++)c+=A[r[i]%A.length];try{localStorage.setItem(ACCT_KEY,c)}catch(e){}}return c}
+function supaDb(cl){return{doc(path){const seg=path.split('/'),uid=seg[2],k=seg.slice(3).join('/');return{
+  async get(){const{data,error}=await cl.rpc('cfs_get',{p_uid:uid,p_k:k});if(error)throw error;return{exists:data!=null,data:()=>data!=null?JSON.parse(data):null}},
+  async set(o){const{error}=await cl.rpc('cfs_put',{p_uid:uid,p_k:k,p_v:JSON.stringify(o)});if(error)throw error},
+  async delete(){await cl.rpc('cfs_del',{p_uid:uid,p_k:k})}}}}}
+const tmo=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej('timeout'),ms))]);
+{const _ni=NET.init;NET.init=async function(){await _ni.call(this);
+  if(!this.db){const cfg=window.UT_CONFIG||{};if(cfg.supabaseUrl&&cfg.supabaseKey&&window.supabase&&window.supabase.createClient){try{const cl=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey);const db=supaDb(cl),uid=acctCode();
+      await tmo(db.doc('data/users/'+uid+'/probe').get(),5000);this.db=db;this.uid=uid;this.cloud='supabase';
+      this.remoteSaves=[null,null,null];for(const i of[0,1,2]){dbRefs[i]=db.doc('data/users/'+uid+'/save'+(i?i:''));try{const sn=await tmo(dbRefs[i].get(),5000);if(sn.exists){const d=sn.data();if(d&&d.j)this.remoteSaves[i]=JSON.parse(d.j)}}catch(e){}}
+      dbRef=dbRefs[0];this.remoteSave=this.remoteSaves[0];NLOG('Nube lista (Supabase)')}catch(e){this.cloud=null;NLOG('Nube no disponible: '+String(e&&e.message||e).slice(0,60))}}}
+  else{this.cloud='claude';NLOG('Nube lista (cuenta de Claude)')}
+  try{await accLoad()}catch(e){}}}
+// ------------------------------------------------ account-wide achievements
+let ACC={ach:{}},accTimer=0;
+function accRef(){return NET.db&&NET.uid?NET.db.doc('data/users/'+NET.uid+'/acc'):null}
+async function accLoad(){try{const j=localStorage.getItem('cfs_acc');if(j)ACC=Object.assign({ach:{}},JSON.parse(j))}catch(e){}
+  const r=accRef();if(r){try{const sn=await tmo(r.get(),5000);if(sn.exists){const d=sn.data();if(d&&d.j){const o=JSON.parse(d.j);for(const k in(o.ach||{}))if(!ACC.ach[k])ACC.ach[k]=o.ach[k]}}}catch(e){}}
+  // characters made before this update bring their achievements into the account
+  for(const i of[0,1,2]){const d=slotData(i);if(d&&d.fl&&!d.solo)for(const k in d.fl)if(k.slice(0,4)==='ach:'&&!ACC.ach[k.slice(4)])ACC.ach[k.slice(4)]=d.t||1}accSave()}
+function accSave(){try{localStorage.setItem('cfs_acc',JSON.stringify(ACC))}catch(e){}const r=accRef();if(r){clearTimeout(accTimer);accTimer=setTimeout(()=>r.set({j:JSON.stringify(ACC)}).catch(()=>{}),800)}}
+function accMerge(){if(!S||!S.fl)return;let up=0;for(const k in ACC.ach)if(!S.fl['ach:'+k])S.fl['ach:'+k]=1;if(isDev())return;for(const k in S.fl)if(k.slice(0,4)==='ach:'&&!ACC.ach[k.slice(4)]){ACC.ach[k.slice(4)]=Date.now();up=1}if(up)accSave()}
+{const _wu=worldUpdate;worldUpdate=function(){if(S&&FR%90===0)accMerge();_wu()}}
+{const _sg=saveGame;saveGame=function(){try{accMerge()}catch(e){}_sg()}}
+// ------------------------------------------------ account menu: code, transfer, backup
+async function accountMenu(){while(true){const cl=NET.cloud,L=[['Guardado en la nube',cl==='claude'?'cuenta de Claude':cl==='supabase'?'activo':'no disponible'],['Tu código de cuenta',cl==='supabase'?NET.uid.slice(0,4)+'…':'—'],['Usar el código de otro dispositivo',''],['Copiar respaldo de este personaje',''],['Cargar un respaldo',''],['Logros de la cuenta',Object.keys(ACC.ach).length+'/'+ACH.length],['Créditos','']];
+  const i=await pickList('CUENTA',L.map(a=>({l:a[0],r:a[1]})),{x:10,y:10,w:300,rows:7,desc:k=>['Tus personajes se guardan solos en la nube y en este dispositivo.','Con este código recuperas tus personajes y logros en otro dispositivo. No lo compartas: es como una contraseña.','Cambia este dispositivo a otra cuenta. Las partidas locales actuales se guardan aparte por seguridad.','Un texto con toda la partida de este personaje, para guardarlo donde quieras.','Pega un respaldo para reemplazar a este personaje.','Los logros son de la cuenta: los compartes entre todos tus personajes (menos en modo desarrollador).','Quién hizo este juego.'][k]});
+  if(i<0)return;
+  if(i===1){if(cl!=='supabase'){await say([cl==='claude'?'En esta versión tu partida va ligada a tu cuenta de Claude; no hace falta código.':'La nube no está disponible ahora.']);continue}await new Promise(r=>askText(NET.uid,40,v=>{clearKeys();r()}));await say(['Ese es tu código: '+NET.uid,'Anótalo. En otro dispositivo, elige "Usar el código de otro dispositivo" y escríbelo.'])}
+  if(i===2){if(cl!=='supabase'){await say(['Esto solo hace falta en la versión de GitHub.']);continue}const v=await new Promise(r=>askText('',40,x=>{clearKeys();r(x)}));const code=(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length<16){if(v)await say(['Ese código no es válido.']);continue}
+    const c=await choose('¿Cambiar este dispositivo a la cuenta '+code.slice(0,4)+'…? El juego se recargará.',['Sí','No']);if(c!==0)continue;saveGame();try{for(const k of[0,1,2]){const kk=slotKey(k),j=localStorage.getItem(kk);if(j){localStorage.setItem(kk+'.bak'+Date.now(),j);localStorage.removeItem(kk)}}localStorage.setItem(ACCT_KEY,code);localStorage.removeItem('cfs_acc')}catch(e){}setTimeout(()=>location.reload(),300);return}
+  if(i===3){saveGame();const code=await packSave(S);await new Promise(r=>askText(code,200000,v=>{clearKeys();r()}));try{await navigator.clipboard.writeText(code);UI.toast('Respaldo copiado','#8cf')}catch(e){UI.toast('Selecciona el texto y cópialo','#fc8')}}
+  if(i===4){const v=await new Promise(r=>askText('',200000,x=>{clearKeys();r(x)}));if(!v)continue;try{const o=await unpackSave(v.trim());if(!o||!o.nick)throw 0;const c=await choose('¿Reemplazar a '+S.nick+' por '+o.nick+' (Nv '+o.lv+')?',['Sí','No']);if(c===0){const keep=S.solo;S=fixSave(o);if(keep&&!S.solo)S.solo=1;saveGame();UI.stack.length=0;GS='world';enterRoom(S.room,S.x,S.y,0);UI.toast('Respaldo cargado','#8cf');return}}catch(e){await say(['Ese respaldo no se pudo leer.'])}}
+  if(i===5){await pickList('LOGROS DE LA CUENTA',ACH.map(a=>({l:(ACC.ach[a[0]]?'★ ':'· ')+a[1],c:ACC.ach[a[0]]?'#ffe040':'#888'})),{x:40,y:10,w:240,rows:12,desc:k=>ACH[k][2]})}
+  if(i===6)await creditsScreen()}}
+async function packSave(o){const j=JSON.stringify(o);try{const cs=new CompressionStream('deflate-raw'),w=cs.writable.getWriter();w.write(new TextEncoder().encode(j));w.close();const b=new Uint8Array(await new Response(cs.readable).arrayBuffer());let s='';for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return'CFS1.'+btoa(s)}catch(e){return'CFS0.'+btoa(unescape(encodeURIComponent(j)))}}
+async function unpackSave(s){if(s.startsWith('CFS0.'))return JSON.parse(decodeURIComponent(escape(atob(s.slice(5)))));if(!s.startsWith('CFS1.'))throw 0;const bin=atob(s.slice(5)),b=new Uint8Array(bin.length);for(let i=0;i<b.length;i++)b[i]=bin.charCodeAt(i);const ds=new DecompressionStream('deflate-raw'),w=ds.writable.getWriter();w.write(b);w.close();return JSON.parse(await new Response(ds.readable).text())}
+// ------------------------------------------------ credits
+function creditsScreen(){return new Promise(res=>{const L=[['CODEFEELSTRONG','#ffe040',30],['',0],['Idea, historia y dirección','#8cf'],['MitsuGami','#fff',22],['',0],['Diseño de personajes y jefes','#8cf'],['MitsuGami (bocetos originales)','#fff'],['',0],['Música original','#8cf'],['MitsuGami: siete riffs de guitarra,','#fff'],['"Incienso", "Autoconciente", "Ser Servil"','#fff'],['y "Romper Esquemas"','#fff'],['Arreglos y música del juego: generados en vivo','#aaa'],['',0],['Programación, pixel art y efectos','#8cf'],['Claude (IA de Anthropic), dirigido por MitsuGami','#fff'],['',0],['En línea','#8cf'],['Supabase Realtime','#fff'],['',0],['Gracias a quienes jugaron las pruebas','#ffe040'],['y a ti, por jugar.','#ffe040'],['',0],['Z o X para volver','#666',16]];
+  const p={t:0,update(){this.t++;if(this.t>20&&(P_('z')||P_('x'))){UI.pop(this);res()}},draw(){R(0,0,GW,GH,'#000');for(let i=0;i<30;i++){const h=hash('cr'+i);R(h%GW,((h>>8)+this.t*.3)%GH,1,1,'#334')}let y=GH-((this.t*.45)%(L.length*12+GH))+10;if(this.t<40)y=GH-this.t*.45*1+10;for(const[s,c,sz]of L){if(s&&y>-14&&y<GH)T(s,GW/2,y,c,sz||18,'center');y+=sz>20?20:12}}};UI.push(p)})}
+// ------------------------------------------------ chat filter (Roblox style: the message goes through, the bad words become ####)
+const BADW=['puta','puto','putit','mierd','pendej','weon','weón','huev','aweona','conchetumar','conchesumar','conchasumadre','ctm','csm','ql','culia','chuch','maricon','marica','verga','zorra','perra','cabron','joder','coño','gilipoll','hijueput','hijodeput','hdp','malparid','follar','culo','pene','vagina','sexo','porno','nazi','fuck','shit','bitch','cunt','dick','pussy','nigg','niga','fag','retard','whore','slut','asshole','bastard','cock','porn','sex','nude','kys','rape','violar','violad','suicid','matate','mátate'];
+const SAFE=['culto','cultura','perrito','pendiente','computa','disputa','reputa','sexto','conclusion','dickens','scunthorpe','huevo','huevos','chucho','pico','picos'];
+function normW(w){return w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[4@]/g,'a').replace(/3/g,'e').replace(/[1!|]/g,'i').replace(/0/g,'o').replace(/[5$]/g,'s').replace(/7/g,'t').replace(/[^a-zñ]/g,'').replace(/(.)\1+/g,'$1')}
+function isBad(w){const n=normW(w);if(n.length<2)return false;if(SAFE.some(s=>n===normW(s)))return false;return BADW.some(b=>{const nb=normW(b);return nb.length<=3?n===nb:n.includes(nb)})}
+function censor(s){if(!s)return s;s=String(s);
+  s=s.replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,m=>'#'.repeat(m.length)).replace(/(https?:\/\/|www\.)\S+/gi,m=>'#'.repeat(m.length)).replace(/(?:\d[\s.-]?){7,}/g,m=>m.replace(/\d/g,'#'));
+  const parts=s.split(/(\s+)/);for(let i=0;i<parts.length;i++)if(!/^\s+$/.test(parts[i])&&isBad(parts[i]))parts[i]=parts[i].replace(/[^\s]/g,'#');
+  // spaced-out letters: "p u t a"
+  let out=parts.join('');const sp=/(?:\b\w\b[\s.\-_]+){2,}\b\w\b/g;out=out.replace(sp,m=>isBad(m)?m.replace(/\w/g,'#'):m);return out}
+{const _sy=NET.say.bind(NET);NET.say=function(s){return _sy(censor(s))}}
+// ------------------------------------------------ emotes (original pixel drawings of internet-culture reactions)
+const EMOTES=[['xd','xD'],['pac',':v'],['smug','7u7'],['uwu','uwu'],['f','F'],['gg','GG'],['skull','Me muero'],['clown','Payaso'],['fire','Fuego'],['sus','Sospechoso'],['bruh','Bruh'],['pog','¡Wow!'],['heart','Corazón'],['L','L'],['W','W'],['huh','¿Eh?']];
+function drawEmote(k,x,y,t){const s=Math.min(1,t/6),b=Math.sin(t*.2)*1;X.save();X.translate(x,y+b);X.scale(s,s);const P=(a,c,w,h,col)=>R(a,c,w,h,col),face=(col)=>{ell(0,0,9,9,'#2a1a10');ell(0,0,8,8,col)};
+  R(-12,-12,24,24,'rgba(0,0,0,.55)');RO(-12,-12,24,24,'#fff',1);
+  if(k==='xd'){face('#ffd040');P(-5,-3,4,1,'#2a1a10');P(-5,-4,1,3,'#2a1a10');P(1,-3,4,1,'#2a1a10');P(4,-4,1,3,'#2a1a10');X.fillStyle='#7a1a1a';X.beginPath();X.moveTo(-5,1);X.lineTo(5,1);X.quadraticCurveTo(0,8,-5,1);X.fill();P(-9,-1,2,3,'#60c0ff')}
+  else if(k==='pac'){face('#ffd040');P(-4,-4,2,2,'#2a1a10');P(2,-4,2,2,'#2a1a10');X.strokeStyle='#2a1a10';X.lineWidth=1.4;X.beginPath();X.moveTo(-3,1);X.lineTo(0,5);X.lineTo(3,1);X.stroke()}
+  else if(k==='smug'){face('#ffd040');P(-6,-3,4,1,'#2a1a10');P(2,-3,4,1,'#2a1a10');P(-6,-5,3,1,'#2a1a10');X.strokeStyle='#2a1a10';X.lineWidth=1.2;X.beginPath();X.moveTo(-3,3);X.quadraticCurveTo(1,5,5,1);X.stroke();P(-7,1,3,1,'#ff9090');P(4,1,3,1,'#ff9090')}
+  else if(k==='uwu'){face('#ffe0f0');X.strokeStyle='#2a1a10';X.lineWidth=1.2;for(const d of[-4,4]){X.beginPath();X.arc(d,-2,2,0,Math.PI);X.stroke()}X.beginPath();X.moveTo(-2,2);X.lineTo(-1,4);X.lineTo(0,2.5);X.lineTo(1,4);X.lineTo(2,2);X.stroke();P(-7,0,2,1,'#ff9090');P(5,0,2,1,'#ff9090')}
+  else if(k==='f'){P(-8,-8,16,16,'#3a3a5a');RO(-8,-8,16,16,'#aab',1);T('F',0,-8,'#fff',22,'center')}
+  else if(k==='gg'){T('GG',0,-8,t%20<10?'#ffe040':'#fff',22,'center')}
+  else if(k==='skull'){ell(0,-2,8,7,'#eee');P(-5,3,10,4,'#eee');P(-5,-4,3,3,'#111');P(2,-4,3,3,'#111');P(-1,0,2,2,'#111');for(let i=0;i<4;i++)P(-4+i*2.5,5,1,2,'#111');if(t%30<15)T('XD',8,-14,'#ff6060',12)}
+  else if(k==='clown'){face('#fff');ell(0,1,2.5,2.5,'#ff2020');ell(-9,-6,4,4,'#ff40ff');ell(9,-6,4,4,'#40c0ff');P(-5,-4,2,2,'#111');P(3,-4,2,2,'#111');X.strokeStyle='#ff2020';X.lineWidth=1.6;X.beginPath();X.arc(0,2,5,.3,Math.PI-.3);X.stroke()}
+  else if(k==='fire'){const f=Math.sin(t*.5)*1.5;X.fillStyle='#ff5010';X.beginPath();X.moveTo(-7,7);X.quadraticCurveTo(-9,-2,-2,-9+f);X.quadraticCurveTo(0,-3,3,-6);X.quadraticCurveTo(9,0,7,7);X.closePath();X.fill();X.fillStyle='#ffd040';X.beginPath();X.moveTo(-4,7);X.quadraticCurveTo(-4,0,0,-3+f);X.quadraticCurveTo(5,2,4,7);X.closePath();X.fill()}
+  else if(k==='sus'){face('#c0c8d0');P(-6,-3,5,3,'#fff');P(1,-3,5,3,'#fff');const e=t%40<20?-1:1;P(-4+e*1.5,-3,2,3,'#111');P(3+e*1.5,-3,2,3,'#111');P(-6,-5,5,1,'#2a1a10');P(1,-6,5,1,'#2a1a10');P(-3,3,6,1,'#2a1a10')}
+  else if(k==='bruh'){face('#d8b890');P(-6,-3,4,2,'#2a1a10');P(2,-3,4,2,'#2a1a10');P(-6,-4,4,1,'#d8b890');P(-3,3,6,1,'#2a1a10')}
+  else if(k==='pog'){face('#ffd040');ell(-4,-3,2.5,3,'#fff');ell(4,-3,2.5,3,'#fff');P(-4,-3,1,1,'#111');P(4,-3,1,1,'#111');ell(0,4,3,4,'#5a1010')}
+  else if(k==='heart'){const p=1+Math.sin(t*.3)*.1;X.scale(p,p);heart(-3.5,-3,'#ff3050');X.scale(1.6,1.6);heart(-3.5,-3,'#ff3050')}
+  else if(k==='L'){T('L',0,-9,'#ff5050',26,'center')}else if(k==='W'){T('W',0,-9,'#40e080',26,'center')}
+  else if(k==='huh'){face('#ffd040');P(-5,-3,2,2,'#111');P(3,-4,2,3,'#111');P(-2,3,4,1,'#2a1a10');T('?',9,-14,'#fff',16)}
+  X.restore()}
+async function emoteMenu(){const j=await pickList('EMOTES',EMOTES.map(e=>({l:e[1]})),{x:110,y:10,w:100,rows:12});if(j<0)return;const k=EMOTES[j][0];WT.myEm={k,t:0,until:Date.now()+3500};if(!(S&&S.solo)){NET.emI=(NET.emI||0)+1;NET.lobbyPatch({em:{i:NET.emI+'-'+NET.pid,k}},true)}AU.sfx('ok')}
+{const _oc2=openChat;openChat=async function(){if(S&&S.solo){emoteMenu();return}if(!NET.on){emoteMenu();return}const c=await choose('CHAT',['Mensajes','Emotes']);if(c===1){await emoteMenu();return}if(c===0)return _oc2()}}
+{const _gr=NET.ghostsInRoom.bind(NET);NET.ghostsInRoom=function(){const out=_gr(),now=Date.now();this.seenEm=this.seenEm||{};for(const g of out){const pr=this.others().find(o=>o.pid===g.pid),G=this.ghost[g.pid];if(pr&&pr.em&&this.seenEm[g.pid]!==pr.em.i){this.seenEm[g.pid]=pr.em.i;if(G)G.em={k:pr.em.k,t:0,until:now+3500}}if(G&&G.em&&G.em.until>now){G.em.t++;g.em=G.em}g.n=censor(g.n);if(g.say)g.say.s=censor(g.say.s)}return out}}
+{const _dw=drawWorld;drawWorld=function(){_dw();if(GS!=='world')return;const now=Date.now();if(WT.mySay&&!WT.mySay.cz){WT.mySay.cz=1;WT.mySay.s=censor(WT.mySay.s)}
+  try{for(const g of NET.ghostsInRoom())if(g.em)drawEmote(g.em.k,g.x-(CAMX_world||0),g.y-50-(CAMY_world||0),g.em.t)}catch(e){}
+  if(WT.myEm&&WT.myEm.until>now){WT.myEm.t++;drawEmote(WT.myEm.k,PL.x-(CAMX_world||0),PL.y-50-(CAMY_world||0),WT.myEm.t)}}}
+// ------------------------------------------------ connection log (Grupo → Registro de conexión)
+const NETLOG=[];function NLOG(s){const d=new Date();NETLOG.push(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')+' '+s);if(NETLOG.length>60)NETLOG.shift()}
+let NLS={};{const _tk2=NET.tick;NET.tick=function(){_tk2.call(this);if(FR%60||!S||S.solo)return;const st={on:!!this.on,con:this.connected!==false,n:this.others().length,party:!!this.party,pm:this.party?this.partyMembers().length:0,rm:S.room};
+  if(st.on!==NLS.on||st.con!==NLS.con)NLOG(st.on&&st.con?'Conectado':'DESCONECTADO');if(st.n!==NLS.n)NLOG(st.n+' jugadores en línea');if(st.party!==NLS.party)NLOG(st.party?'En grupo':'Sin grupo');if(st.party&&st.pm!==NLS.pm)NLOG('Grupo: '+st.pm+' miembros');
+  if(st.party){for(const m of this.partyMembers()){if(m.rm===S.room&&!this.ghostsInRoom().some(g=>g.pid===m.pid)){const k='miss'+m.pid;if(!NLS[k]){NLOG('No se ve a '+String(m.n||'?')+' (misma sala, sin posición)');NLS[k]=1}}else delete NLS['miss'+m.pid]}}
+  Object.assign(NLS,st)}}
+{const _pm2=partyMenu;partyMenu=async function(){if(S&&S.solo)return _pm2();const c=await choose('GRUPO',['Opciones de grupo','Registro de conexión']);if(c===1){await pickList('REGISTRO DE CONEXIÓN',(NETLOG.length?NETLOG.slice().reverse():['(vacío)']).map(s=>({l:s.slice(0,44)})),{x:6,y:10,w:308,rows:12,desc:()=>'Si dejas de ver a alguien, saca una captura de esta lista y mándamela.'});return}if(c===0)return _pm2()}}
+PAUSE_D.CUENTA=()=>NET.cloud?'Nube, respaldos, logros, créditos':'Respaldos, logros, créditos';
+{const _mi31=menuIcon;menuIcon=function(k,x,y){if(k==='CUENTA'){R(x+3,y+7,10,8,'#c8a040');RO(x+3,y+7,10,8,'#6a4a10',1);X.strokeStyle='#c8c8d4';X.lineWidth=2;X.beginPath();X.arc(x+8,y+7,3.5,Math.PI,0);X.stroke();R(x+7,y+10,2,3,'#3a2a10');return}_mi31(k,x,y)}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
