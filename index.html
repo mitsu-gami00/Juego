@@ -2601,7 +2601,7 @@ function bulletPhase(){
       if(L.md.sh>0){const a=Math.min(L.md.sh,d);L.md.sh-=a;d-=a;if(d<=0){AU.sfx('block');SOUL.inv=30;return}}
       S.hp-=d;if(codigoAbsorb(st))return;AU.sfx('hurt');UI.shake=6;SOUL.inv=st.ch.includes('parpadeo')?64:40;L.fx.push({k:'mydmg',v:d,t:0,d:40});
       let th=(L.md.th||0)+(st.ch.includes('espinas')?3:0)+(S.sub==='espinoso'?4:0);L.th+=th;
-      if(S.hp<=0){if(L.md.ub){S.hp=1}else if(st.ch.includes('fenix')&&!L.fenix){L.fenix=1;S.hp=Math.round(st.mhp*.3);AU.sfx('heal');UI.toast('¡FÉNIX!','#f80')}else{S.hp=0;SOUL.dead=1;AU.sfx('dust');L.fx.push({k:'shatter',x:SOUL.x,y:SOUL.y,t:0,d:60})}}
+      if(S.hp<=0){if(L.md.ub||(typeof devInvOn==='function'&&devInvOn())){S.hp=1}else if(st.ch.includes('fenix')&&!L.fenix){L.fenix=1;S.hp=Math.round(st.mhp*.3);AU.sfx('heal');UI.toast('¡FÉNIX!','#f80')}else{S.hp=0;SOUL.dead=1;AU.sfx('dust');L.fx.push({k:'shatter',x:SOUL.x,y:SOUL.y,t:0,d:60})}}
     }};
   const done=bulletTick(SOUL.dead?Object.assign({},ctx,{hit:()=>{}}):ctx);
   if(SOUL.dead){SOUL.x=-99}
@@ -5767,7 +5767,7 @@ function travDuel(tv){return new Promise(res=>{const st=stats('du'),T_=TIERS[tv.
     if(D.ph==='bar'){const b=D.bar;if(b.w>0){b.w--;if(b.w===0){if(b.i>=b.n){const avg=b.q.reduce((a,c)=>a+c,0)/b.q.length;resolve({k:'atk',a:b.a,acc:clamp(avg,.12,1)})}else b.x=-64}return}b.x+=b.sp;const hit=P_('z');if(hit||b.x>66){const q=hit&&b.x<=66?clamp(1-Math.abs(b.x)/60,0,1):0;b.q.push(q<.92?q:1);AU.sfx(q>.9?'crit':q>0?'hit':'no');b.i++;b.w=b.i>=b.n?18:9;b.last=q}return}
     if(D.ph==='show'){if(D.t>70||(D.t>14&&P_('z'))){if(f.mercy>=100){D.ph='end';D.t=0;D.res='spare';return}D.ph=(D.L.q.length||D.Rb.q.length)?'dodge':'after';D.t=0}return}
     if(D.ph==='dodge'){const sp=K.x?1:2,s=D.L.s;if(window.__auto!=null){aiSoul(D.L,TIERS[window.__auto],D.ai2=D.ai2||{})}else if(K.left)s.x-=sp;if(window.__auto==null){if(K.right)s.x+=sp;if(K.up)s.y-=sp;if(K.down)s.y+=sp}s.x=clamp(s.x,D.L.x+4,D.L.x+D.L.w-4);s.y=clamp(s.y,D.L.y+4,D.L.y+D.L.h-4);
-      stepBox(D.L,()=>{me.hp=Math.max(0,me.hp-D.dmM);D.hitsMe++;AU.sfx('hurt');UI.shake=5;D.fx.push({t:0,x:D.L.s.x,y:D.L.s.y,s:'-'+D.dmM,c:'#f66'})});aiSoul(D.Rb,T_,D.ai);stepBox(D.Rb,()=>{f.hp=Math.max(tv.endure?1:0,f.hp-D.dmF);D.hitsFo++;AU.sfx('hit');D.fx.push({t:0,x:D.Rb.s.x,y:D.Rb.s.y,s:'-'+D.dmF,c:'#ffe040'})});
+      stepBox(D.L,()=>{me.hp=Math.max((typeof devInvOn==='function'&&devInvOn())?1:0,me.hp-D.dmM);D.hitsMe++;AU.sfx('hurt');UI.shake=5;D.fx.push({t:0,x:D.L.s.x,y:D.L.s.y,s:'-'+D.dmM,c:'#f66'})});aiSoul(D.Rb,T_,D.ai);stepBox(D.Rb,()=>{f.hp=Math.max(tv.endure?1:0,f.hp-D.dmF);D.hitsFo++;AU.sfx('hit');D.fx.push({t:0,x:D.Rb.s.x,y:D.Rb.s.y,s:'-'+D.dmF,c:'#ffe040'})});
       const idle=!D.L.q.length&&!D.Rb.q.length&&!D.L.b.length&&!D.Rb.b.length;if(D.t>330||idle||me.hp<=0||f.hp<=0){D.L.b=[];D.Rb.b=[];D.L.q=[];D.Rb.q=[];D.ph='after';D.t=0}return}
     if(D.ph==='after'){if(D.t===1){D.msg=[];if(D.mine.k==='atk')D.msg.push('Acertaste '+D.hitsFo+' ('+D.hitsFo*D.dmF+' de daño).');if(D.foe.k==='atk')D.msg.push('Te dieron '+D.hitsMe+' vez/veces ('+D.hitsMe*D.dmM+' de daño).')}
       if(D.t>50||(D.t>10&&P_('z'))){if(me.hp<=0){D.ph='end';D.res='lose';D.t=0}else if(f.hp<=0){D.ph='end';D.res='win';D.t=0;AU.sfx('dust')}else if(tv.endure&&D.turn>=tv.endure-1){D.ph='end';D.res='yield';D.t=0;AU.sfx('save')}else{D.turn++;me.tp=Math.min(100,me.tp+20);f.tp=Math.min(100,f.tp+20);if(me.gcd>0)me.gcd--;if(f.gcd>0)f.gcd--;D.note='';D.ph='menu';D.t=0}}return}
@@ -6498,6 +6498,7 @@ function bossDown(P,e,killed){try{const pre=P.pre&&P.pre.t===P.turn?P.pre.enc:P.
 
 // =================================================================== EXT27: developer mode — name the character "MitsuGami" on the title screen
 const isDev=()=>!!(S&&S.solo&&S.nick&&S.nick.trim().toLowerCase()==='mitsugami');
+const devInvOn=()=>!!(S&&S.fl&&S.fl.devInv&&isDev());
 PAUSE_D.DEV=()=>'Editar personaje, ruta, jefes y saltar de sala';
 {const _mi=menuIcon;menuIcon=function(k,x,y){if(k==='DEV'){R(x+2,y+2,12,12,'#101820');RO(x+2,y+2,12,12,'#30ff90',1);T('>_',x+3,y+2,'#30ff90',12);return}_mi(k,x,y)}}
 openPause=async function(){AU.sfx('sel');let sel=0;
@@ -6512,10 +6513,10 @@ function devRefresh(){try{S.hp=clamp(S.hp,1,stats('av').mhp);syncLook();saveGame
 async function devMenu(){let sel=0;const O={x:10,y:10,w:300,rows:12};
   while(true){const rt=route(),L=[['Nivel',S.lv],['Clase',ROLES[S.role].n],['Ruta',RNAME[rt]],['Jefes: vivos / muertos / perdonados',''],['Progreso e historia',''],['Herramientas y reliquias',''],['Dar todo el equipo y llenar la mochila',''],['Bellotas +1000',S.g],['Curar del todo',''],['Invencible',S.fl.devInv?'SÍ':'no'],['Bestiario completo',''],['Saltar a una sala',''],['Reproductor de música','']];
     const i=await pickList('MODO DESARROLLADOR',L.map(a=>({l:a[0],r:String(a[1])})),Object.assign({sel,desc:()=>'Los cambios se guardan en esta partida. X: volver.'},O));if(i<0){devRefresh();return false}sel=i;
-    if(i===0){const lv=[1,5,10,15,20,25,30],j=await pickList('NIVEL',lv.map(n=>({l:'Nivel '+n})),{x:100,y:30,w:120,rows:7});if(j>=0){S.lv=lv[j];S.xp=0;if(S.lv<30)delete S.fl.sup30;S.hp=stats('av').mhp}}
+    if(i===0){const lv=Array.from({length:30},(_,n)=>n+1),j=await pickList('NIVEL',lv.map(n=>({l:'Nivel '+n,r:n>LV_MAX?'post-juego':''})),{x:80,y:20,w:160,rows:10,sel:S.lv-1});if(j>=0){S.lv=lv[j];S.xp=0;if(S.lv<30)delete S.fl.sup30;S.hp=stats('av').mhp}}
     else if(i===1){const ks=Object.keys(ROLES),j=await pickList('CLASE',ks.map(k=>({l:ROLES[k].n})),{x:100,y:30,w:140,rows:ks.length});if(j>=0){S.role=ks[j];S.sub=null;S.hp=stats('av').mhp}}
-    else if(i===2){const j=await pickList('RUTA',[{l:'Pacifista',r:'nadie muerto'},{l:'Neutral',r:'de todo un poco'},{l:'Genocida',r:'todos muertos'}],{x:60,y:30,w:200,rows:3,desc:()=>'Ajusta los contadores de muertes, perdones y huidas para que el juego lea esa ruta.'});
-      if(j===0){S.kills=0;delete S.fl.rneutral}else if(j===1){S.kills=Math.max(1,S.kills);S.spares=Math.max(1,S.spares)}else if(j===2){S.kills=Math.max(30,S.kills);S.spares=0;S.fled=0;delete S.fl.rneutral}}
+    else if(i===2){const j=await pickList('RUTA',[{l:'Pacifista',r:'nadie muerto'},{l:'Neutral',r:'de todo un poco'},{l:'Genocida',r:'todos muertos'}],{x:60,y:30,w:200,rows:3,desc:()=>'Ajusta muertes, perdones y huidas. Pacifista pasa los jefes muertos a perdonados; Genocida, al revés.'});
+      if(j===0){S.kills=0;delete S.fl.rneutral;for(const k in S.fl)if(k.slice(0,2)==='b:'&&S.fl[k]==='k')S.fl[k]='s'}else if(j===1){S.kills=Math.max(1,S.kills);S.spares=Math.max(1,S.spares)}else if(j===2){S.kills=Math.max(30,S.kills);S.spares=0;S.fled=0;delete S.fl.rneutral;for(const k in S.fl)if(k.slice(0,2)==='b:'&&S.fl[k]==='s')S.fl[k]='k'}if(j>=0)UI.toast('Ruta: '+RNAME[route()]+(j!==1?' · jefes ajustados a la ruta':''),'#8cf')}
     else if(i===3){const bs=devBosses();let s2=0;while(true){const j=await pickList('JEFES (Z: cambiar estado)',bs.map(([id,rm])=>{const v=S.fl['b:'+id];return{l:BOSS[id].n.slice(0,26),r:v==='k'?'MUERTO':v==='s'?'PERDONADO':v?'VENCIDO':'vivo'}}),Object.assign({sel:s2,desc:k=>bs[k][1]},O));if(j<0)break;s2=j;const id=bs[j][0],v=S.fl['b:'+id];if(!v)S.fl['b:'+id]='k';else if(v==='k')S.fl['b:'+id]='s';else delete S.fl['b:'+id];if(id.slice(0,5)==='cons_'){if(S.fl['b:'+id])S.fl['rel_'+id.slice(5)]=1;else delete S.fl['rel_'+id.slice(5)]}}}
     else if(i===4){let s2=0;while(true){const fin=Object.keys(S.fl).some(k=>k.slice(0,4)==='fin:')||!!S.fl.end,P=[['Juego base terminado (abre Las Afueras)',fin?'SÍ':'no'],['Final de dios',S.fl.god||'no'],['Chester derrotado alguna vez',(S.fl.chK||S.fl['fin:n']||S.fl.end==='n')?'SÍ':'no'],['Duelo final de Chester hecho',S.fl.chDuel?'SÍ':'no'],['Cambio a ruta Neutral (Tinta)',S.fl.rneutral?'SÍ':'no'],['Supremacía vista',S.fl.sup30?'SÍ':'no'],['Borrar encargos y logros','']];
         const j=await pickList('PROGRESO (Z: cambiar)',P.map(a=>({l:a[0],r:String(a[1])})),Object.assign({sel:s2},O));if(j<0)break;s2=j;
