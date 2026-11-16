@@ -2596,7 +2596,7 @@ function bulletPhase(){
     tp:v=>{L.tpg+=v*(S.sub==='bardo'?1.5:1)},
     heal:v=>{if(S.hp>0)S.hp=Math.min(st.mhp,S.hp+v)},
     hit:b=>{if(SOUL.dead||L.md.inv)return;
-      const atk=Math.max(...L.atks);let d=Math.max(1,Math.round(atk*(b.dm||1)-st.def*.4));d=Math.max(1,Math.round(d*(L.md.r||1)));
+      const atk=Math.max(...L.atks);let d=Math.max(1,Math.round(atk*(b.dm||1)-st.def*.4));d=Math.max(1,Math.round(d*(L.md.r||1)*accDmg()));
       if((st.ch.includes('firewall')||S.sub==='bastion')&&!L.ff){L.ff=1;d=0;AU.sfx('block');SOUL.inv=30;return}
       if(L.md.sh>0){const a=Math.min(L.md.sh,d);L.md.sh-=a;d-=a;if(d<=0){AU.sfx('block');SOUL.inv=30;return}}
       S.hp-=d;if(codigoAbsorb(st))return;AU.sfx('hurt');UI.shake=6;SOUL.inv=st.ch.includes('parpadeo')?64:40;L.fx.push({k:'mydmg',v:d,t:0,d:40});
@@ -3710,7 +3710,7 @@ titleUpdate=function(){
   if(P_('up')){TI.sel=(TI.sel+2)%3;AU.sfx('blip')}if(P_('down')){TI.sel=(TI.sel+1)%3;AU.sfx('blip')}
   if(P_('z')){AU.unlock();AU.sfx('ok');const i=TI.sel,d=slotData(i);
     if(!d){SLOT=i;startNew();return}
-    TI.busy=true;choose(d.nick+' · Nv '+d.lv,['Continuar','Borrar','Cancelar']).then(async c=>{
+    TI.busy=true;const OPT=d.fl&&d.fl.god?['Continuar','Nueva partida+','Borrar','Cancelar']:['Continuar','Borrar','Cancelar'];choose(d.nick+' · Nv '+d.lv+(d.ng?' · NG+'+d.ng:''),OPT).then(async c0=>{const c=c0<0?-1:['Continuar','Borrar','Cancelar','Nueva partida+'].indexOf(OPT[c0]);if(c===3){const y=await choose('¿Empezar de nuevo con '+d.nick+'? Pierdes nivel, objetos y progreso. Conservas aspecto, clase, bestiario, mascota y logros.',['Sí, de nuevo','No']);if(y===0){SLOT=i;S=ngPlus(d);GS='intro';TI.it=0;TI.t=0;AU.play('title');saveGame()}TI.busy=false;return}
       if(c===0){SLOT=i;S=d;AU.setVol(S.mus,S.sfx);GS='world';enterRoom(S.room,S.x,S.y,0);UI.toast('¡Hola de nuevo, '+S.nick+'!')}
       else if(c===1){const y=await choose('¿Borrar a '+d.nick+' para siempre?',['No','Sí, borrar']);if(y===1)deleteSlot(i)}
       TI.busy=false})}
@@ -5930,7 +5930,7 @@ QUESTS.push({id:'q_pez',who:'Abuela Ceniza',pre:yes19,n:'Pesca para la abuela',a
 {const _do19=drawObj;drawObj=function(o){if(o.k==='train'){const x=o.x*16,y=o.y*16,t=FR;R(x,y+4,32,12,'#2a2a34');R(x,y+4,32,2,'#4a4a5a');R(x+3,y-10,26,15,'#14141c');RO(x+3,y-10,26,15,'#6a6a80',1);R(x+5,y-8,22,11,'#0a2a1a');const k=(t>>4)%3;ell(x+16,y-3,4-k%2,3,'#40e080');R(x+14,y-4,1,1,'#000');R(x+17,y-4,1,1,'#000');if(t%40<20)R(x+24,y-7,2,2,'#ff5050');R(x+6,y+8,4,2,'#e04040');R(x+12,y+8,4,2,'#40a0e0');R(x+18,y+8,4,2,'#e0c040');return}_do19(o)}}
 async function trainMenu(){const ids=bstIds().filter(k=>S.bst&&S.bst[k]);if(!ids.length){await say(['El simulador está vacío. Necesita criaturas del bestiario.']);return false}
   const i=await pickList('SIMULADOR · '+ids.length+' criaturas',ids.map(k=>({l:(BOSS[k]||EN[k]).n,r:BOSS[k]?'JEFE':''})),{x:10,y:10,w:300,rows:12,desc:k=>'Practica contra '+(BOSS[ids[k]]||EN[ids[k]]).n+'. Los PV se restauran cada turno. No se gana ni se pierde nada.'});if(i<0)return false;
-  const id=ids[i],d=BOSS[id]||EN[id],L=[['Todos sus ataques',null]];[d.pats,d.p2,d.p0,d.p3].forEach((l,c)=>{if(l)l.forEach((p,k)=>L.push([(c===1?'Fase 2 · ':c===2?'Apertura · ':c===3?'Fase 3 · ':'')+'Ataque '+(k+1)+' ('+p[0]+')',[k,c]]))});
+  const id=ids[i],d=BOSS[id]||EN[id],L=[['Todos sus ataques',null]];[d.pats,d.p2,d.p0,d.p3].forEach((l,c)=>{if(l)l.forEach((p,k)=>L.push([(c===1?'Fase 2 · ':c===2?'Apertura · ':c===3?'Fase 3 · ':'')+patName(p[0])+' ('+(k+1)+')',[k,c]]))});
   const j=await pickList('¿QUÉ PRACTICAR?',L.map(a=>({l:a[0]})),{x:40,y:20,w:240,rows:Math.min(12,L.length),desc:k=>k?'Solo usará este ataque, una y otra vez.':'Combate de práctica completo.'});if(j<0)return false;
   const m=await choose('Fuerza del enemigo',['Original','Ajustada a mi nivel','Cancelar']);if(m!==0&&m!==1)return false;
   const ar=ARENA.find(a=>a[0]===id),ak=m===0?1:ar?clamp(.3+.7*S.lv/ar[1],.3,1.5):d.cons?Math.max(.8,1+(S.lv+2-20)*.07):BOSS[id]?1:Math.max(.6,1+(S.lv-12)*.11);
@@ -6642,7 +6642,7 @@ function voiceOf(line,opt){let nm=opt&&opt.who?String(opt.who).toUpperCase():'';
 function voiceBlip(p,ch,i,at){const c=AU.ctx;if(!c)return;if(i%(p.every||2))return;const t=at!=null?at:c.currentTime,code=ch.charCodeAt(0)||65,out=AU.sg,g=genoAmt?genoAmt():0;
   let f=p.f*(1+(((code*7)%9)/8-.5)*2*p.v);if(/[AEIOUÁÉÍÓÚaeiouáéíóú]/.test(ch))f*=1.06;if(g>0&&((code*13+i)%5)/5<g*.5)f*=Math.pow(2,(((code+i)%3)-1)/12);
   const tone=(fr,w,d,v,t0)=>{const o=c.createOscillator(),gn=c.createGain();o.type=w;o.frequency.setValueAtTime(fr,t+t0);gn.gain.setValueAtTime(.0001,t+t0);gn.gain.linearRampToValueAtTime(v,t+t0+.004);gn.gain.exponentialRampToValueAtTime(.0005,t+t0+d);o.connect(gn);gn.connect(out);o.start(t+t0);o.stop(t+t0+d+.02);return o};
-  const v=p.g*(AU.svol!=null?1:1);
+  const v=p.g*(S&&S.vvol!=null?S.vvol:1);if(v<=0)return;
   if(p.x==='dist'){const o=tone(f,p.w,p.d,v,0);tone(f*1.5,'square',p.d*.7,v*.35,0);tone(f*.5,'sine',p.d,v*.6,0);return}
   if(p.x==='noise'){tone(f,p.w,p.d,v,0);try{const n=c.createBufferSource(),fl=c.createBiquadFilter(),gn=c.createGain();n.buffer=AU.noise;fl.type='bandpass';fl.frequency.value=1800;gn.gain.setValueAtTime(v*.5,t);gn.gain.exponentialRampToValueAtTime(.001,t+p.d);n.connect(fl);fl.connect(gn);gn.connect(out);n.start(t);n.stop(t+p.d+.01)}catch(e){}return}
   if(p.x==='chord'){tone(f,p.w,p.d,v,0);tone(f*1.25,p.w,p.d,v*.5,0);tone(f*1.5,p.w,p.d,v*.45,0);return}
@@ -6660,10 +6660,9 @@ function voiceBlip(p,ch,i,at){const c=AU.ctx;if(!c)return;if(i%(p.every||2))retu
 KMAP.v='v';KMAP.V='v';
 // ------------------------------------------------ single-player mode
 let PENDING_SOLO=0;
-{const _ns=newSave;newSave=function(){const s=_ns();if(PENDING_SOLO)s.solo=1;return s}}
 {const _sn=startNew;startNew=async function(){TI.busy=true;const c=await choose('¿Cómo quieres jugar con este personaje?',['En línea','Un jugador']);TI.busy=false;if(c<0)return;PENDING_SOLO=c===1?1:0;
   if(c===1)await say(['MODO UN JUGADOR: nadie te verá ni podrás ver a nadie. Sin grupos, duelos ni chat.','Es el único modo donde funcionan los trucos de desarrollador. La elección es para siempre en este personaje.']);
-  try{return await _sn()}finally{PENDING_SOLO=0}}}
+  const pr=_sn();if(PENDING_SOLO&&S)S.solo=1;PENDING_SOLO=0;return pr}}
 {const _tk=NET.tick.bind(NET);NET.tick=function(){if(S&&S.solo)return;_tk()}}
 {const _ot=NET.others.bind(NET);NET.others=function(){if(S&&S.solo)return[];return _ot()}}
 {const _oc=openChat;openChat=async function(){if(S&&S.solo){UI.toast('Modo un jugador: sin chat','#aaa');return}return _oc()}}
@@ -6758,6 +6757,129 @@ let NLS={};{const _tk2=NET.tick;NET.tick=function(){_tk2.call(this);if(FR%60||!S
 {const _pm2=partyMenu;partyMenu=async function(){if(S&&S.solo)return _pm2();const c=await choose('GRUPO',['Opciones de grupo','Registro de conexión']);if(c===1){await pickList('REGISTRO DE CONEXIÓN',(NETLOG.length?NETLOG.slice().reverse():['(vacío)']).map(s=>({l:s.slice(0,44)})),{x:6,y:10,w:308,rows:12,desc:()=>'Si dejas de ver a alguien, saca una captura de esta lista y mándamela.'});return}if(c===0)return _pm2()}}
 PAUSE_D.CUENTA=()=>NET.cloud?'Nube, respaldos, logros, créditos':'Respaldos, logros, créditos';
 {const _mi31=menuIcon;menuIcon=function(k,x,y){if(k==='CUENTA'){R(x+3,y+7,10,8,'#c8a040');RO(x+3,y+7,10,8,'#6a4a10',1);X.strokeStyle='#c8c8d4';X.lineWidth=2;X.beginPath();X.arc(x+8,y+7,3.5,Math.PI,0);X.stroke();R(x+7,y+10,2,3,'#3a2a10');return}_mi31(k,x,y)}}
+
+// =================================================================== EXT32: player-vs-player duels with the new rules (split boxes, aimed volleys, guard, 2 items, escalating projectiles)
+// Each player is authoritative over the damage his own soul takes. Both boxes are filled from the same seeds on both screens.
+const pvpSeed=(D,pid)=>mulberry(hash(D.code+'|'+D.turn+'|'+pid));
+startDuel=function(code,oppPid){if(BT||DU)return;UI.stack.length=0;const st=stats('du');
+  DU={v2:1,code,opp:oppPid,turn:0,ph:'intro',t:0,me:{hp:st.mhp,mh:st.mhp,tp:0,gcd:0,items:2},op:{hp:null},sel:0,sub:null,msg:[],fx:[],L:mkBox(22,62,126,92),Rb:mkBox(172,62,126,92),saveHp:S.hp,truce:0};
+  GS='duel';AU.stop();setTimeout(()=>AU.play('duel'),300);NET.setInBattle('duel');NET.duelPatch(Object.assign(duelInfo(),{dhp:DU.me.hp,act:null,done:null,end:null,sl:null}))};
+function pvpDmg(a,from,to,guard){if(guard)return 1;const stat=a[6]==='mag'?(from.mg||from.a||5):(from.a||5);return Math.max(1,Math.round(stat*a[4]*.5-(to.df||0)*.35))}
+function pvpFinish(D,res){D.res=res;D.ph='end';D.t=0;D.endStep=0}
+function pvpResolve(D,op){const mine=D.act,foe=D.oppAct,me=D.me,st=stats('du'),myA=ATK2[S.role]||ATK2.guerrero,foA=ATK2[op.ro]||ATK2.guerrero,my=duelInfo();
+  D.msg=[];D.L=mkBox(22,62,126,92);D.Rb=mkBox(172,62,126,92);D.hitsMe=0;D.hitsFo=0;D.rsl=null;
+  if(mine.k==='quit'){D.msg.push('Te rindes.');D.after='lose';return}if(foe.k==='quit'){D.msg.push(op.n+' se rinde.');D.after='win';return}
+  if(mine.k==='truce'&&foe.k==='truce'){D.msg.push('Los dos bajan el arma y se dan la mano.');D.after='draw';return}
+  const mg=mine.k==='guard',fg=foe.k==='guard';if(mg)me.gcd=3;
+  if(mine.k==='atk'){const a=myA[mine.ai]||myA[0];me.tp=Math.max(0,me.tp-a[5]);const n=Math.max(1,Math.round(a[2]*mine.acc*duelEsc(D.turn)));fillBox(D.Rb,a[1],n,a[3],pvpSeed(D,NET.pid));D.Rb.q.sort((x,y)=>x.t-y.t);D.msg.push('Tú: '+a[0]+' → '+n+' proyectiles'+(fg?' (¡se defendió!)':''));D.dmF=pvpDmg(a,my,op,fg)}
+  else if(mg)D.msg.push('Te pones en guardia.'+(foe.k==='atk'?' ¡Bien leído!':''));
+  else if(mine.k==='item'){const it=ITEMS[mine.id]||{h:10,n:'algo'};me.hp=Math.min(me.mh,me.hp+(it.h||10));me.items--;const ix=S.items.indexOf(mine.id);if(ix>=0)S.items.splice(ix,1);D.msg.push('Usas '+it.n+'. (+'+(it.h||10)+' PV)');AU.sfx('heal')}
+  else if(mine.k==='truce')D.msg.push('Ofreces una tregua... '+op.n+' no la acepta este turno.');
+  if(foe.k==='atk'){const a=foA[foe.ai]||foA[0];const n=Math.max(1,Math.round(a[2]*clamp(foe.acc||.5,.12,1)*duelEsc(D.turn)));fillBox(D.L,a[1],n,a[3],pvpSeed(D,D.opp));D.L.q.sort((x,y)=>x.t-y.t);D.msg.push(op.n+': '+a[0]+' → '+n+' proyectiles');D.dmM=pvpDmg(a,op,my,mg)}
+  else if(foe.k==='guard')D.msg.push(op.n+' se pone en guardia.');else if(foe.k==='item')D.msg.push(op.n+' usa un objeto.');else if(foe.k==='truce'&&mine.k!=='truce')D.msg.push(op.n+' te ofrece una tregua. Elige TREGUA el próximo turno para aceptarla.')}
+duelUpdate=function(){const D=DU;if(!D.v2)return;D.t++;const me=D.me,op=oppP();for(const x of D.fx)x.t++;D.fx=D.fx.filter(x=>x.t<40);
+  if(op&&op.dhp!=null)D.op.hp=op.dhp;if(op&&op.mh)D.op.mh=op.mh;
+  const goneRes=()=>me.hp<=0?'lose':(D.op.hp!=null&&D.op.hp<=0)?'win':'forfeit';
+  if(op&&op.end&&D.ph!=='end'){const m={win:'lose',forfeit:'lose',lose:'win',draw:'draw'}[op.end];if(m){pvpFinish(D,m);return}}
+  if(!op&&D.ph!=='end'&&D.t>240&&D.ph!=='intro'){pvpFinish(D,goneRes());return}
+  const sendAct=a=>{a.t=D.turn;D.act=a;D.ph='wait';D.t=0;NET.duelPatch({act:a})};
+  switch(D.ph){
+  case'intro':if(D.t>60&&op&&op.n){D.ph='menu';D.t=0;D.note=op.n+' te desafía. ¡A duelo!'}else if(D.t>600)pvpFinish(D,'noshow');break;
+  case'menu':{const myA=ATK2[S.role]||ATK2.guerrero;
+    if(D.sub){const s=D.sub,n=s.list.length;if(P_('x')){D.sub=null;return}if(P_('up')){s.i=(s.i+n-1)%n;AU.sfx('blip')}if(P_('down')){s.i=(s.i+1)%n;AU.sfx('blip')}
+      if(P_('z')){if(s.k==='atk'){const a=myA[s.i];if(a[5]>me.tp){AU.sfx('no');return}AU.sfx('sel');D.sub=null;const w=stats('du').W.bar;D.bar={ai:s.i,x:-64,n:w.n,i:0,q:[],sp:2.5*w.sp,w:0};D.ph='bar'}else if(s.k==='item'){AU.sfx('sel');const id=s.list[s.i];D.sub=null;sendAct({k:'item',id})}}return}
+    if(P_('left')){D.sel=(D.sel+4)%5;AU.sfx('blip')}if(P_('right')){D.sel=(D.sel+1)%5;AU.sfx('blip')}
+    if(P_('z')){const s=D.sel;if(s===0){AU.sfx('sel');D.sub={k:'atk',i:0,list:myA}}else if(s===1){if(me.gcd>0){AU.sfx('no');D.note='Defender se recarga en '+me.gcd+' turno(s).'}else{AU.sfx('sel');sendAct({k:'guard'})}}
+      else if(s===2){const l=S.items.filter(k=>ITEMS[k].h);if(me.items<=0||!l.length){AU.sfx('no');D.note=me.items<=0?'Ya usaste tus 2 objetos de este duelo.':'No tienes objetos que curen.'}else{AU.sfx('sel');D.sub={k:'item',i:0,list:l}}}
+      else if(s===3){AU.sfx('sel');sendAct({k:'truce'})}else{AU.sfx('sel');sendAct({k:'quit'})}}break}
+  case'bar':{const b=D.bar;if(b.w>0){b.w--;if(b.w===0){if(b.i>=b.n){const avg=b.q.reduce((a,c)=>a+c,0)/b.q.length;sendAct({k:'atk',ai:b.ai,acc:+clamp(avg,.12,1).toFixed(2)})}else b.x=-64}break}b.x+=b.sp;const hit=P_('z');if(hit||b.x>66){const q=hit&&b.x<=66?clamp(1-Math.abs(b.x)/60,0,1):0;b.q.push(q<.92?q:1);AU.sfx(q>.9?'crit':q>0?'hit':'no');b.i++;b.w=b.i>=b.n?18:9;b.last=q}break}
+  case'wait':if(op&&op.act&&op.act.t===D.turn){D.oppAct=op.act;pvpResolve(D,op);D.ph='show';D.t=0}else if(D.t>60*60&&op){D.oppAct={k:'guard',t:D.turn};pvpResolve(D,op);D.ph='show';D.t=0}break;
+  case'show':if(D.t>80||(D.t>14&&P_('z'))){if(D.after){NET.duelPatch({done:{t:D.turn,hp:me.hp},dhp:me.hp});pvpFinish(D,D.after);return}D.ph=(D.L.q.length||D.Rb.q.length)?'dodge':'post';D.t=0;if(D.ph==='post')NET.duelPatch({done:{t:D.turn,hp:me.hp},dhp:me.hp})}break;
+  case'dodge':{const sp=K.x?1:2,s=D.L.s;if(window.__auto!=null)aiSoul(D.L,TIERS[window.__auto],D.ai2=D.ai2||{});else{if(K.left)s.x-=sp;if(K.right)s.x+=sp;if(K.up)s.y-=sp;if(K.down)s.y+=sp}
+    s.x=clamp(s.x,D.L.x+4,D.L.x+D.L.w-4);s.y=clamp(s.y,D.L.y+4,D.L.y+D.L.h-4);
+    if(FR%3===0)NET.duelPatch({sl:{x:+((s.x-D.L.x)/D.L.w).toFixed(3),y:+((s.y-D.L.y)/D.L.h).toFixed(3),t:D.turn}});
+    if(op&&op.sl&&op.sl.t===D.turn){const tx=D.Rb.x+op.sl.x*D.Rb.w,ty=D.Rb.y+op.sl.y*D.Rb.h;D.Rb.s.x+=(tx-D.Rb.s.x)*.35;D.Rb.s.y+=(ty-D.Rb.s.y)*.35}
+    stepBox(D.L,()=>{me.hp=Math.max(0,me.hp-D.dmM);D.hitsMe++;AU.sfx('hurt');UI.shake=5;D.fx.push({t:0,x:D.L.s.x,y:D.L.s.y,s:'-'+D.dmM,c:'#f66'});NET.duelPatch({dhp:me.hp})});
+    stepBox(D.Rb,()=>{D.hitsFo++;AU.sfx('hit');D.fx.push({t:0,x:D.Rb.s.x,y:D.Rb.s.y,s:'¡!',c:'#ffe040'})});
+    const mine=!D.L.q.length&&!D.L.b.length;if(D.t>330||mine||me.hp<=0){if(!D.sentDone){D.sentDone=1;NET.duelPatch({done:{t:D.turn,hp:me.hp},dhp:me.hp})}if(D.t>330||(!D.Rb.q.length&&!D.Rb.b.length)||me.hp<=0){D.L.b=[];D.L.q=[];D.Rb.b=[];D.Rb.q=[];D.ph='post';D.t=0}}break}
+  case'post':{if(!D.sentDone){D.sentDone=1;NET.duelPatch({done:{t:D.turn,hp:me.hp},dhp:me.hp})}
+    if(op&&op.done&&op.done.t===D.turn){const oh=op.done.hp;D.op.hp=oh;if(me.hp<=0||oh<=0){pvpFinish(D,me.hp<=0&&oh<=0?'draw':me.hp<=0?'lose':'win');if(oh<=0)AU.sfx('dust');break}
+      D.turn++;D.sentDone=0;me.tp=Math.min(100,me.tp+20);if(me.gcd>0)me.gcd--;D.note='';D.ph='menu';D.t=0}else if(D.t>60*40)pvpFinish(D,goneRes());break}
+  case'end':duelEnd();break}};
+// end screen: reuse the old rewards, with the new structure's numbers
+{const _de=duelEnd;duelEnd=function(){const D=DU;if(D&&D.v2&&D.endStep===0){D.hp=D.me.hp}return _de()}}
+drawDuel=function(){const D=DU;if(!D.v2)return;const me=D.me,op=oppP()||{},t=D.t,mc=ROLES[S.role].soul,oc=(ROLES[op.ro]||ROLES.guerrero).soul,on=String(op.n||'Rival').slice(0,12),omh=op.mh||D.op.mh||1,ohp=D.op.hp==null?omh:D.op.hp;
+  R(0,0,GW,GH,'#05050c');for(let i=0;i<30;i++){X.globalAlpha=.3+.3*Math.sin(FR*.03+i);R((i*53)%GW,(i*29)%56,1,1,'#fff')}X.globalAlpha=1;
+  const hb=(x,y,w,q,c)=>{R(x-1,y-1,w+2,6,'#fff');R(x,y,w,4,'#400');R(x,y,w*clamp(q,0,1),4,c)};
+  drawCharBig(S.look,30,56,3,D.ph==='dodge'?Math.floor(FR/8)%4:0,2);T(S.nick,54,6,'#fff',16);T('Nv '+S.lv,54,17,'#aaa',12);hb(54,30,84,me.hp/me.mh,'#ffe040');T(Math.ceil(me.hp)+'/'+me.mh,54,36,'#fff',12);hb(54,48,50,me.tp/100,'#40c0ff');T('PT '+me.tp,108,44,'#8cf',12);
+  if(op.lk)drawCharBig(op.lk,290,56,2,D.ph==='dodge'?Math.floor(FR/8)%4:0,2);T(on,266,6,'#fff',16,'right');T((ROLES[op.ro]?ROLES[op.ro].n:'')+' Nv '+(op.lv||1),266,17,'#aaa',12,'right');hb(182,30,84,ohp/omh,ohp<=omh*.2?'#f66':'#30e040');T(Math.ceil(ohp)+'/'+omh,266,36,'#fff',12,'right');
+  T('VS',GW/2,22,'#f44',22,'center');T('Turno '+(D.turn+1)+(D.turn>1?' · proyectiles ×'+duelEsc(D.turn).toFixed(1).replace('.0',''):''),GW/2,40,'#888',12,'center');
+  drawBox2(D.L,oc,mc,'TÚ ESQUIVAS');drawBox2(D.Rb,mc,oc,on.toUpperCase()+' ESQUIVA');
+  if((D.ph==='dodge'||D.ph==='show')&&D.act&&D.act.k==='guard'){X.globalAlpha=.25+.1*Math.sin(FR*.2);RO(D.L.x+2,D.L.y+2,D.L.w-4,D.L.h-4,'#40c0ff',3);X.globalAlpha=1}
+  if((D.ph==='dodge'||D.ph==='show')&&D.oppAct&&D.oppAct.k==='guard'){X.globalAlpha=.25+.1*Math.sin(FR*.2);RO(D.Rb.x+2,D.Rb.y+2,D.Rb.w-4,D.Rb.h-4,'#40c0ff',3);X.globalAlpha=1}
+  for(const x of D.fx)T(x.s,x.x,x.y-10-x.t*.5,x.c,16,'center');
+  boxW(8,170,304,64);
+  if(D.ph==='intro')T('Esperando a '+on+'...',16,176,'#fff',20);
+  else if(D.ph==='menu'){const L=['ATACAR','DEFENDER','OBJETO','TREGUA','RENDIRSE'];L.forEach((l,i)=>{const dis=(i===1&&me.gcd>0)||(i===2&&me.items<=0),x=14+i*60;RO(x,210,56,18,i===D.sel?'#ffe040':dis?'#444':'#ff9a1a',1);T(l,x+28,212,i===D.sel?'#ffe040':dis?'#555':'#ff9a1a',16,'center')});
+    if(D.sub){const s=D.sub;s.list.forEach((it,i)=>{const lab=s.k==='atk'?it[0]+'  ·  hasta '+it[2]+' proy.'+(it[5]?'  ·  '+it[5]+' PT':''):ITEMS[it].n+' (+'+ITEMS[it].h+' PV)';T((i===s.i?'▶ ':'  ')+lab,16,174+i*11,i===s.i?'#ffe040':(s.k==='atk'&&it[5]>me.tp)?'#666':'#fff',16)})}
+    else T(D.note||['ATACAR: tu puntería decide cuántos proyectiles envías.','DEFENDER: si te atacan este turno, cada golpe quita 1. Luego 2 turnos de recarga.','OBJETO: te curas. Quedan '+me.items+' de 2.','TREGUA: si los dos la eligen el mismo turno, empatan.','RENDIRSE: pierdes el duelo.'][D.sel],16,176,'#fff',14)}
+  else if(D.ph==='bar'){const b=D.bar,cx=160,cy=192;R(cx-66,cy-8,132,16,'#111');RO(cx-66,cy-8,132,16,'#fff',1);R(cx-3,cy-8,6,16,'#2a6');R(cx-1,cy-8,2,16,'#ffe040');R(cx+b.x-1,cy-10,3,20,'#fff');T('¡Pulsa Z en el centro! '+(b.i+1)+'/'+b.n,cx,cy+10,'#aaa',12,'center')}
+  else if(D.ph==='wait')T('Esperando la jugada de '+on+'...'+'.'.repeat((FR>>4)%3),16,176,'#aaa',16);
+  else if(D.ph==='show'||D.ph==='post'){(D.msg||[]).slice(0,4).forEach((m,i)=>T(m,16,176+i*12,'#fff',14));if(D.ph==='post'&&!(op.done&&op.done.t===D.turn))T('Esperando a '+on+'...',16,222,'#888',12)}
+  else if(D.ph==='end'&&D.txt){T(D.txt[Math.max(0,Math.min(D.txt.length-1,(D.endStep||1)-1))],16,180,'#ffe040',18);T('Z',300,220,'#666',12,'right')}};
+
+// =================================================================== EXT33: the world after you became a god, neutral-route hires, New Game+, accessibility, voices volume, first-fight tutorial, attack names
+// ------------------------------------------------ attack names (simulator, bestiary)
+const PATN={rain:'Lluvia',aimed:'Disparo dirigido',side:'Ráfaga lateral',bounce:'Rebotes',wind:'Viento',ring:'Anillo',tictac:'Tic-tac',lightning:'Relámpagos',rewind:'Rebobinar',fog:'Niebla',invis:'Invisibles',feed:'Desplazamiento infinito',pixels:'Píxeles',burbujas:'Burbujas',goteo:'Goteo',baba:'Baba',marea:'Marea',walls:'Muros',spiral:'Espiral',cores:'Núcleos',homing:'Teledirigidos',lasers:'Láseres',beam:'Rayo',cross:'Cruz',grid:'Cuadrícula',glitch:'Fallo',bite:'Mordisco',claws:'Garras',crows:'Cuervos',moths:'Polillas',roots:'Raíces',quake:'Temblor',crush:'Aplastar',pinch:'Pellizco',slap:'Bofetada',snap:'Chasquido',scissors:'Tijeras',fistslam:'Puñetazo',fingergun:'Pistola de dedos',eggs:'Huevos',acorns:'Bellotas',crumbs:'Migas',pecks:'Picotazos',likes:'Me gusta',ratio:'Ratio',popups:'Ventanas emergentes',alerts:'Alertas',progress:'Barra de progreso',spinner:'Ruedita de carga',firewall:'Cortafuegos',quarantine:'Cuarentena',scan:'Escaneo',overclock:'Overclock',overheat:'Sobrecalentamiento',semicolons:'Puntos y coma',paragraph:'Párrafo',text:'Texto',context:'Contexto',constitution:'Constitución',nonsense:'Disparate',meme:'Meme',troll:'Broma pesada',mirror:'Espejo',twins:'Gemelos',fusion:'Fusión',clock:'Reloj',chaos:'Caos',stream:'Corriente',bullets:'Balas',arms:'Brazos',armshot:'Brazo cañón',avdash:'Embestida',cdash:'Carga',drag:'Arrastre',boxhop:'Cuadro saltarín',boxsplit:'Cuadro partido',capgrid:'Captcha',codevines:'Enredaderas de código',burn:'Quemadura',tear:'Desgarro',fork:'Bifurcación',blueorange:'Azul y naranja',onepass:'Una pasada',tpbeam:'Rayo de PT',allpat:'Todo a la vez',vbite:'Mordida voraz',vchaos:'Caos voraz',veye:'Ojo voraz',vscream:'Grito voraz',a_golpe:'Puño cruzado',a_corbata:'Corbata',a_lentes:'Mirada',a_papeleo:'Pistón',a_pisoton:'Pisotón',a_munon:'Cizalla',a_mordisco:'Mordisco',a_botones:'Botones',a_todo:'Todo a la vez',a_pluma:'Hoja de energía',a_grapa:'Cañón',a_goma:'Láser',a_cursor:'Garra'};
+function patName(id){return PATN[id]||String(id).replace(/^./,c=>c.toUpperCase())}
+// ------------------------------------------------ settings: accessibility, voices volume, low power
+const accOpt=k=>!!(typeof S!=='undefined'&&S&&S.acc&&S.acc[k]);
+function accDmg(){return accOpt('story')?.5:1}
+{let _sh=0;Object.defineProperty(UI,'shake',{configurable:true,get(){return _sh},set(v){_sh=accOpt('calm')?0:v}})}
+{const _fl=UI.flash.bind(UI);UI.flash=function(c){if(accOpt('calm'))return;return _fl(c)}}
+{const _so=soulShape;soulShape=function(x,y,c,s){if(accOpt('outline')){s=s||1;const P=[[1,0,2],[5,0,2],[0,1,8],[0,2,8],[0,3,8],[1,4,6],[2,5,4],[3,6,2]];X.fillStyle='#fff';for(const[a,b,w]of P)for(const[dx,dy]of[[-1,0],[1,0],[0,-1],[0,1]])X.fillRect(x+(a+dx)*s,y+(b+dy)*s,w*s,s);X.fillStyle='#000';for(const[a,b,w]of P)X.fillRect(x+a*s+(s>1?1:0),y+b*s,w*s,s)}return _so(x,y,c,s)}}
+{const _dr=draw;draw=function(){if(accOpt('low')&&FR%2===1)return;_dr()}}
+{const _sm=settingsMenu;settingsMenu=async function(){const c=await choose('AJUSTES',['General','Accesibilidad y voces']);if(c===0)return _sm();if(c!==1)return;S.acc=S.acc||{};if(S.vvol==null)S.vvol=1;
+  while(true){const A=S.acc,on=v=>v?'SÍ':'no',L=[['Volumen de voces',Math.round(S.vvol*10)+''],['Sin destellos ni temblores',on(A.calm)],['Alma con contorno',on(A.outline)],['Modo historia (mitad de daño)',on(A.story)],['Modo bajo consumo',on(A.low)]];
+    const i=await pickList('ACCESIBILIDAD Y VOCES',L.map(a=>({l:a[0],r:a[1]})),{x:10,y:10,w:300,rows:5,lr:(k,d)=>{if(k===0){S.vvol=clamp(Math.round(S.vvol*10+d)/10,0,1);voiceBlip(VOICE.PRAXINATOR,'a',0);return -2}},
+      desc:k=>['Izquierda y derecha: volumen de las voces de los personajes.','Quita el temblor de pantalla y los destellos blancos.','Dibuja un borde blanco alrededor de tu alma para verla mejor sobre cualquier fondo.','Recibes la mitad de daño en combate. No cambia nada más.','Dibuja a 30 cuadros por segundo para gastar menos batería en teléfonos.'][k]});
+    if(i===-2)continue;if(i<0){saveGame();return}const key=[null,'calm','outline','story','low'][i];if(key){A[key]=!A[key];AU.sfx('ok')}}}}
+// ------------------------------------------------ first-fight tutorial
+const TUT_BTN=['LUCHAR: pulsa Z cuando la barra pase por el centro. Hace daño.','ACTUAR: habla, bromea, ayuda. Así un enemigo puede querer rendirse.','HABIL: habilidades de tu clase. Gastan PT (la barra azul).','OBJETO: cúrate con lo que llevas en la mochila.','PIEDAD: perdona a un enemigo cuando su nombre se ponga amarillo.','DEFENSA: recibes menos daño este turno y ganas PT.'];
+{const _db=drawBattle;drawBattle=function(){_db();try{if(!BT||!S||S.fl.tut||BT.P.boss||BT.P.arena)return;const L=BT.L;let s=null;if(L.ph==='menu'&&!L.sub)s=TUT_BTN[L.sel];else if(L.ph==='bullet')s='¡Esquiva! Mueve tu alma con las flechas. Mantén X para ir más lento y preciso.';else if(L.ph==='fight')s='¡Pulsa Z cuando la línea pase por el centro!';
+  if(s){gx();const ls=wrap(s,GW-40,16);boxW(10,4,GW-20,ls.length*9+12);T('TUTORIAL',18,6,'#ffe040',14);ls.forEach((l,i)=>T(l,18,15+i*9,'#fff',16))}}catch(e){}}}
+{const _eb=exitBattle;exitBattle=function(res){try{if(S&&BT&&!BT.P.boss&&!BT.P.arena)S.fl.tut=1}catch(e){}return _eb(res)}}
+// ------------------------------------------------ the world after the god ending
+const GODL={p:['¡Mira quién es! Dicen que ahora cuidas de todos los bosques.','Desde que abriste las puertas, mi hermana vino de visita. Gracias.','¿Tú eres la... nueva diosa? ¿Nuevo dios? Bueno. Hola.','Los niños juegan a ser tú. Siempre ganan sin pegarle a nadie.','Ya no hay una mano en el cielo. Se duerme mejor.','Te guardé un pastel. No sabía si los dioses comen. Por si acaso.'],
+ n:['Hola... Sé lo que hiciste. Lo bueno y lo otro.','Gracias por lo que salvaste. Algunos no lo cuentan.','Haces lo que puedes. Supongo que es lo que hacemos todos.','En la plaza pusieron flores por los que no volvieron.','No sé si inclinarme o saludarte. Hola.','Hay días en que te admiro y días en que te temo. Hoy no sé.'],
+ g1:['(Retrocede sin darte la espalda.)','No me hagas nada. Por favor.','(Finge no verte.)','...','Te quedas mirando la pantalla del despacho todo el día. Nos da miedo.'],
+ g2:['¡Buenos días! ¿Eres nuevo en este mundo?','No te conozco, pero me caes bien.','Hay algo en ti que me da frío. No sé por qué.','Este bosque apareció de la nada. Es precioso. ¿Lo hiciste tú?'],g:['...','(Retrocede sin darte la espalda.)']};
+{const _in=interact;interact=async function(){const[fx,fy]=facingPoint();const o=NET.playerNear(fx,fy)?null:objAtPoint(fx,fy);
+  if(o&&o.k==='gstatue'){AU.sfx('sel');const gd=S.fl.god;await say(gd==='p'?['Una estatua tuya, hecha con madera de todos los bosques.','En la placa: "A quien abrió las puertas sin romper ninguna."']:gd==='n'?['Una estatua tuya. Media cara pulida, media sin terminar.','En la placa: "Hizo lo que pudo." Alguien añadió debajo, a lápiz: "No siempre."']:['Un bloque negro sin nombre. Nadie se acerca.','Si apoyas la pata, está tibio.']);return}
+  if(o&&S.fl.god&&(o.k==='tnpc'||(o.k==='npc'&&!o.shop))){WT.godSeen=WT.godSeen||{};const id=o.who||o.id;if(!WT.godSeen[id]){WT.godSeen[id]=1;const pool=GODL[S.fl.god]||GODL.n;AU.sfx('sel');await say([pool[Math.abs(hash(id))%pool.length]],o.who?{who:o.who,look:o.lk}:{})}}
+  const r=await _in();try{await hireAfter(o)}catch(e){}return r}}
+{const _or=objRect;objRect=function(o){if(o.k==='gstatue')return[o.x*16+1,o.y*16+2,14,14];return _or(o)}}
+{const _is=isSolidObj;isSolidObj=function(o){if(o.k==='gstatue')return true;return _is(o)}}
+{const _sy=sortY;sortY=function(o){if(o.k==='gstatue')return o.y*16+15;return _sy(o)}}
+{const _do=drawObj;drawObj=function(o){if(o.k==='gstatue'){const x=o.x*16+8,y=o.y*16+16,gd=S.fl.god;R(x-9,y-6,18,6,'#6a6a72');R(x-9,y-6,18,1,'#9a9aa6');if(gd==='p'||gd==='n'){X.save();X.globalAlpha=1;X.filter=gd==='p'?'sepia(1) saturate(2.5) brightness(1.1)':'grayscale(.6) sepia(.5)';try{drawCharBig(S.look,x,y-5,0,0,1)}catch(e){}X.filter='none';X.restore();if(gd==='n'){X.globalAlpha=.55;R(x,y-30,7,25,'#6a6a72');X.globalAlpha=1}}else{R(x-6,y-34,12,28,'#0a0a10');R(x-6,y-34,2,28,'#22222c')}return}_do(o)}}
+{const _er=enterRoom;enterRoom=function(){const r=_er.apply(this,arguments);try{if(ROOM.id==='afueras'&&S.fl.god){const w=OBJS.find(o=>o.k==='well');if(w)OBJS.push({k:'gstatue',x:w.x+3,y:w.y-1,i:OBJS.length})}
+  if(S.ally&&!S.fl.allyLeft&&route()!=='n'){S.fl.allyLeft=1;const n=S.ally.n;S.ally=null;setTimeout(()=>{if(!UI.busy())say([n+' se marcha. "No trabajo para quien ya eligió un bando."'])},600)}}catch(e){}return r}}
+// ------------------------------------------------ neutral route: hire villagers with acorns
+const HIRE={'Veterano Roble':{k:'atk',c:180,d:'pega con su bastón'},'Instructora Yunque':{k:'atk',c:220,d:'golpea con técnica'},'Posadera Miga':{k:'heal',c:160,d:'cura al grupo'},'Aprendiz Menta':{k:'heal',c:120,d:'reparte infusiones'},'Cronista Vela':{k:'calm',c:150,d:'calma al enemigo'},'Secretario Lacre':{k:'calm',c:130,d:'negocia con el enemigo'},'Abuela Ceniza':{k:'calm',c:140,d:'regaña al enemigo'},'Mensajera Pluma':{k:'atk',c:140,d:'lanza paquetes'},'Doña Mora':{k:'heal',c:100,d:'trae sopa'},'Herrero':{k:'atk',c:200,d:'martillea'},'Bibliotecaria':{k:'calm',c:110,d:'lee en voz alta'},'Vigía':{k:'atk',c:150,d:'dispara flechas'}};
+async function hireAfter(o){if(!o||o.k!=='tnpc'||!HIRE[o.who]||route()!=='n'||UI.busy()||BT)return;const h=HIRE[o.who],cur=S.ally&&S.ally.n===o.who;
+  if(cur){const c=await choose(o.who+' te acompaña.',['Seguir juntos','Despedir']);if(c===1){S.ally=null;saveGame();await say([o.who+': Cuando quieras, aquí estaré.'],{who:o.who,look:o.lk})}return}
+  const c=await choose('¿Contratar a '+o.who+' como apoyo ('+h.d+')? '+h.c+' bellotas.',['Contratar','No']);if(c!==0)return;
+  if(S.g<h.c){AU.sfx('no');await say(['No te alcanzan las bellotas.']);return}S.g-=h.c;S.ally={n:o.who,lk:o.lk,k:h.k};delete S.fl.allyLeft;AU.sfx('save');saveGame();await say([o.who+': Trato hecho. Voy contigo hasta que me despidas.'+(S.ally?'':'')],{who:o.who,look:o.lk})}
+{const _pr=postResolveHook;postResolveHook=function(P,ev){const r=_pr(P,ev);try{if(!S||!S.ally||!BT||!BT.host||P.arena||route()!=='n')return r;const al=aliveEn(P);if(!al.length)return r;const a=S.ally,rr=mulberry(hash(P.id)+P.turn*131);if(rr()<.25)return r;
+  if(a.k==='atk'){const i=al[Math.floor(rr()*al.length)],d=Math.max(1,Math.round(6+S.lv*1.4));const nh=Math.max(1,P.h[i]-d),dd=P.h[i]-nh;if(dd>0){P.h[i]=nh;ev.push({t:'a',tg:i,d:dd,c:0,s:a.n+' '+HIRE[a.n].d+'. ('+dd+')',by:null})}}
+  else if(a.k==='heal'){ev.push({s:a.n+' '+HIRE[a.n].d+'.'});for(const q of P.mem){const m=memInfo(q);if(m)ev.push({t:'h',tg:q,a:Math.round(m.mh*.12)})}}
+  else{const i=al[Math.floor(rr()*al.length)];if(P.sp&&P.sp[i]<100){P.sp[i]=Math.min(100,P.sp[i]+18);ev.push({s:a.n+' '+HIRE[a.n].d+'. ('+edef(P.enc[i]).n+' se calma un poco.)'})}}}catch(e){}return r}}
+{const _db2=drawBattle;drawBattle=function(){_db2();try{if(S&&S.ally&&BT&&route()==='n'&&!BT.P.arena){gx();const lk=S.ally.lk||{a:0};drawCharBig(lk,14,52,3,Math.floor(FR/20)%2,1);T(S.ally.n.split(' ').pop(),14,54,'#8cf',12,'center')}}catch(e){}}}
+// ------------------------------------------------ New Game+
+function ngPlus(d){const n=newSave();for(const k of['nick','look','role','solo','bst','pet','vw','va','acc','vvol','mus','sfx','gfx'])if(d[k]!==undefined)n[k]=JSON.parse(JSON.stringify(d[k]));n.ng=(d.ng||0)+1;n.fl.ngPrev=d.fl.god||d.fl.end||'?';n.fl.mig14=1;n.fl.tut=1;return n}
+{const _ri=roomInfo;roomInfo=function(id){return _ri(id)}}
+{const _er2=enterRoom;enterRoom=function(){const r=_er2.apply(this,arguments);try{if(S&&S.ng&&!S.fl.ngSaid&&ROOM&&ROOM.id==='cabana'&&GS==='world'){S.fl.ngSaid=1;const pv=S.fl.ngPrev;setTimeout(()=>{if(!UI.busy())say(['Tienes la sensación de haber vivido esto antes.',pv==='p'?'Recuerdas un mundo con las puertas abiertas. Y una estatua.':pv==='n'?'Recuerdas flores en una plaza. Por los que no volvieron.':pv&&pv[0]==='g'?'Recuerdas un despacho vacío. No te gusta recordarlo.':'Recuerdas un final. No sabes cuál.'])},900)}}catch(e){}return r}}
+{const _se=startEncounter;startEncounter=function(enc,opt){if(opt&&opt.boss==='autor'){const B=BOSS.autor;if(!B.introBase)B.introBase=B.intro.slice();B.intro=S&&S.ng?B.introBase.concat(['EL AUTOR: ¿Otra vez tú? Ya sé cómo termina esto. Esta vez lo escribo yo.']):B.introBase.slice()}return _se(enc,opt)}}
 
 // =================================================================== MAIN: title, intro, ending, loop
 let GS='title';
