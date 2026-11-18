@@ -2601,7 +2601,7 @@ function bulletPhase(){
       if(L.md.sh>0){const a=Math.min(L.md.sh,d);L.md.sh-=a;d-=a;if(d<=0){AU.sfx('block');SOUL.inv=30;return}}
       S.hp-=d;if(codigoAbsorb(st))return;AU.sfx('hurt');UI.shake=6;SOUL.inv=st.ch.includes('parpadeo')?64:40;L.fx.push({k:'mydmg',v:d,t:0,d:40});
       let th=(L.md.th||0)+(st.ch.includes('espinas')?3:0)+(S.sub==='espinoso'?4:0);L.th+=th;
-      if(S.hp<=0){if(L.md.ub||(typeof devInvOn==='function'&&devInvOn())){S.hp=1}else if(st.ch.includes('fenix')&&!L.fenix){L.fenix=1;S.hp=Math.round(st.mhp*.3);AU.sfx('heal');UI.toast('¡FÉNIX!','#f80')}else{S.hp=0;SOUL.dead=1;AU.sfx('dust');L.fx.push({k:'shatter',x:SOUL.x,y:SOUL.y,t:0,d:60})}}
+      if(S.hp<=0){if(L.md.ub||(typeof devInvOn==='function'&&devInvOn())||(!S.fl.tut&&!B.P.boss&&!B.P.arena)){S.hp=1}else if(st.ch.includes('fenix')&&!L.fenix){L.fenix=1;S.hp=Math.round(st.mhp*.3);AU.sfx('heal');UI.toast('¡FÉNIX!','#f80')}else{S.hp=0;SOUL.dead=1;AU.sfx('dust');L.fx.push({k:'shatter',x:SOUL.x,y:SOUL.y,t:0,d:60})}}
     }};
   const done=bulletTick(SOUL.dead?Object.assign({},ctx,{hit:()=>{}}):ctx);
   if(SOUL.dead){SOUL.x=-99}
@@ -2782,7 +2782,8 @@ function duelUpdate(){
   if(op&&op.dhp!=null)D.lastOpHp=op.dhp;if(op&&op.done&&op.done.hp!=null)D.lastOpHp=op.done.hp;
   const goneRes=()=>{const oh=D.lastOpHp==null?1:D.lastOpHp;return D.hp<=0&&oh<=0?'draw':D.hp<=0?'lose':oh<=0?'win':'forfeit'};
   if(op&&op.end&&D.ph!=='end'){const m={win:'lose',forfeit:'lose',lose:'win',draw:'draw'}[op.end];if(m){D.res=m;D.ph='end';D.t=0;D.endStep=0}}
-  if(!op&&D.ph!=='end'&&D.t>240&&D.ph!=='intro'){D.res=goneRes();D.ph='end';D.t=0;D.endStep=0}
+  if(op)D.goneAt=0;else if(!D.goneAt)D.goneAt=Date.now();
+  if(!op&&D.ph!=='end'&&D.ph!=='intro'&&D.goneAt&&Date.now()-D.goneAt>10000){D.res=goneRes();D.ph='end';D.t=0;D.endStep=0}
   switch(D.ph){
     case'intro':if(D.t>60&&op&&op.n){D.ph='menu';D.t=0;D.flav=op.n+' te desafía. ¡A duelo!'}else if(D.t>600){D.res='noshow';D.ph='end';D.t=0;D.endStep=0}break;
     case'menu':duelMenu();break;
@@ -3647,7 +3648,7 @@ const NET={on:false,pid:Math.random().toString(36).slice(2,10),room:null,user:nu
 // Slow fields go through presence (quota-friendly); fast fields (position, soul, duel hp) through broadcast.
 const FAST_KEYS=new Set(['x','y','d','mv','sl','dhp']);
 function supaRoomFactory(url,key,pid){
-  const client=window.supabase.createClient(url,key,{realtime:{params:{eventsPerSecond:20}}});
+  const client=window.supabase.createClient(url,key,{realtime:{params:{eventsPerSecond:20}},auth:{persistSession:false,autoRefreshToken:false,storageKey:'cfs-rt'}});
   const mk=(name,fastMs)=>{
     let ch=null,slow={},fast={},slowSent='',fastSent='',tSlow=null,tFast=null,tRe=null,lastSlow=0,lastFast=0,ok=false,left=false,first=null,meta={},fastOf={},fastAt={},cache=[];const conn=[];
     const rebuild=()=>{const out=[];const seen=new Set();
@@ -3656,7 +3657,7 @@ function supaRoomFactory(url,key,pid){
       cache=out};
     const flushSlow=(force)=>{tSlow=null;if(!ok||!ch)return;const j=JSON.stringify(slow);if(j===slowSent&&!force)return;slowSent=j;lastSlow=Date.now();const pl=JSON.parse(j);pl._t=Date.now();pl._x=fast.x;pl._y=fast.y;pl._d=fast.d;try{const r=ch.track(pl);if(r&&r.catch)r.catch(()=>{slowSent=''})}catch(e){slowSent=''}};
     const flushFast=()=>{tFast=null;if(!ok||!ch)return;const j=JSON.stringify(fast);if(j===fastSent)return;fastSent=j;lastFast=Date.now();try{const r=ch.send({type:'broadcast',event:'f',payload:{k:pid,v:JSON.parse(j)}});if(r&&r.catch)r.catch(()=>{fastSent=''})}catch(e){fastSent=''}};
-    const reopen=(ms)=>{if(left||tRe)return;tRe=setTimeout(()=>{tRe=null;if(left)return;try{client.removeChannel(ch)}catch(e){}open()},ms)};
+    const reopen=(ms)=>{if(left||tRe)return;tRe=setTimeout(async()=>{const old=ch;ch=null;ok=false;try{if(old)await Promise.race([client.removeChannel(old),new Promise(r=>setTimeout(r,3000))])}catch(e){}tRe=null;if(left)return;open()},ms)};
     const open=()=>{
       ch=client.channel('ut-'+name,{config:{presence:{key:pid},broadcast:{self:false}}});const mine=ch;
       ch.on('presence',{event:'sync'},()=>{if(ch!==mine)return;const st=ch.presenceState();const prev=meta;meta={};for(const k in st){const a=st[k];if(!a||!a.length)continue;let m=a[a.length-1];for(const q of a)if((q._t||0)>(m._t||0))m=q;const p=Object.assign({},m);delete p.presence_ref;meta[k]=p}
@@ -3680,6 +3681,7 @@ function supaRoomFactory(url,key,pid){
       resync(){if(!ok){reopen(200);return}slowSent='';fastSent='';flushSlow(true);flushFast()},
       async leave(){left=true;clearTimeout(tSlow);clearTimeout(tFast);clearTimeout(tRe);ok=false;try{await ch.untrack()}catch(e){}try{await client.removeChannel(ch)}catch(e){}},
       async join(n){const r=mk(n,170);const okj=await Promise.race([r.ready,new Promise(res=>setTimeout(()=>res(false),9000))]);if(!okj){r.leave();throw{code:'upstream_error'}}return r}};
+    try{document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!left){if(!ok)reopen(100);else{slowSent='';fastSent='';flushSlow(true);flushFast()}}})}catch(e){}
     const ka=setInterval(()=>{if(left)return;if(!ok){reopen(500);return}if(Object.keys(fast).length){fastSent='';flushFast()}if(Date.now()-lastSlow>12000&&Object.keys(slow).length)flushSlow(true)},4000);
     const vis=()=>{try{if(document.visibilityState==='visible')api.resync()}catch(e){}};try{document.addEventListener('visibilitychange',vis);addEventListener('online',vis)}catch(e){}
     const lv=api.leave;api.leave=async()=>{clearInterval(ka);try{document.removeEventListener('visibilitychange',vis)}catch(e){}return lv()};
@@ -6680,7 +6682,7 @@ function supaDb(cl){return{doc(path){const seg=path.split('/'),uid=seg[2],k=seg.
   async delete(){await cl.rpc('cfs_del',{p_uid:uid,p_k:k})}}}}}
 const tmo=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej('timeout'),ms))]);
 {const _ni=NET.init;NET.init=async function(){await _ni.call(this);
-  if(!this.db){const cfg=window.UT_CONFIG||{};if(cfg.supabaseUrl&&cfg.supabaseKey&&window.supabase&&window.supabase.createClient){try{const cl=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey);this.supa=cl;const db=supaDb(cl),uid=acctCode();
+  if(!this.db){const cfg=window.UT_CONFIG||{};if(cfg.supabaseUrl&&cfg.supabaseKey&&window.supabase&&window.supabase.createClient){try{const cl=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false,storageKey:'cfs-db'}});this.supa=cl;const db=supaDb(cl),uid=acctCode();
       await tmo(db.doc('data/users/'+uid+'/probe').get(),5000);this.db=db;this.uid=uid;this.cloud='supabase';
       this.remoteSaves=[null,null,null];for(const i of[0,1,2]){dbRefs[i]=db.doc('data/users/'+uid+'/save'+(i?i:''));try{const sn=await tmo(dbRefs[i].get(),5000);if(sn.exists){const d=sn.data();if(d&&d.j)this.remoteSaves[i]=JSON.parse(d.j)}}catch(e){}}
       dbRef=dbRefs[0];this.remoteSave=this.remoteSaves[0];NLOG('Nube lista (Supabase)')}catch(e){this.cloud=null;NLOG('Nube no disponible: '+String(e&&e.message||e).slice(0,60))}}}
@@ -6783,7 +6785,8 @@ duelUpdate=function(){const D=DU;if(!D.v2)return;D.t++;const me=D.me,op=oppP();f
   if(op&&op.dhp!=null)D.op.hp=op.dhp;if(op&&op.mh)D.op.mh=op.mh;
   const goneRes=()=>me.hp<=0?'lose':(D.op.hp!=null&&D.op.hp<=0)?'win':'forfeit';
   if(op&&op.end&&D.ph!=='end'){const m={win:'lose',forfeit:'lose',lose:'win',draw:'draw'}[op.end];if(m){pvpFinish(D,m);return}}
-  if(!op&&D.ph!=='end'&&D.t>240&&D.ph!=='intro'){pvpFinish(D,goneRes());return}
+  if(op)D.goneAt=0;else if(!D.goneAt)D.goneAt=Date.now();
+  if(!op&&D.ph!=='end'&&D.ph!=='intro'&&D.goneAt&&Date.now()-D.goneAt>10000){pvpFinish(D,goneRes());return}
   const sendAct=a=>{a.t=D.turn;D.act=a;D.ph='wait';D.t=0;NET.duelPatch({act:a})};
   switch(D.ph){
   case'intro':if(D.t>60&&op&&op.n){D.ph='menu';D.t=0;D.note=op.n+' te desafía. ¡A duelo!'}else if(D.t>600)pvpFinish(D,'noshow');break;
@@ -6934,7 +6937,7 @@ KMAP.l='l';KMAP.L='l';
 {const _er=enterRoom;enterRoom=function(id,tx,ty,d){const prev=ROOM&&ROOM.id;_er(id,tx,ty,d);try{
   if(!S||!S.fl)return;if(S.fl.outHome==null&&(S.lv>1||S.fl.end||Object.keys(S.fl).some(k=>k.slice(0,2)==='b:')))S.fl.outHome=1;
   if(id!=='cabana'&&id!=='ladera')S.fl.outHome=1;
-  if(id==='cabana'&&prev==='ladera'&&!S.fl.outHome&&!S.fl.couch&&!S.fl.couchAsk)DLY35.push([FR+30,couchAsk])}catch(e){}}}
+  if(id==='cabana'&&prev==='ladera'&&tx===7.5&&ty===8&&GS==='world'&&!S.fl.outHome&&!S.fl.couch&&!S.fl.couchAsk)DLY35.push([FR+30,couchAsk])}catch(e){}}}
 const DLY35=[];{const _wu0=worldUpdate;worldUpdate=function(){_wu0();for(let i=DLY35.length-1;i>=0;i--)if(FR>=DLY35[i][0]&&!UI.busy()&&!BT&&GS==='world'){const f=DLY35[i][1];DLY35.splice(i,1);try{f()}catch(e){}}}}
 async function couchAsk(){if(!ROOM||ROOM.id!=='cabana'||BT||DU||UI.busy())return;S.fl.couchAsk=1;
   await say(['Vuelves a casa. Afuera hay código verde, bichos raros y un camino larguísimo.','La cama sigue tibia.']);
@@ -7096,6 +7099,7 @@ async function dummyAutorScene(){await say(['EL AUTOR: Bien. Terminemos con esto
   if(P&&res==='win'&&!P.arena&&!P.boss&&P.enc&&P.enc[0]!=='fede'){S.fl.btW=(S.fl.btW||0)+1;if(B.L&&B.L.hp0!=null&&S.hp>=B.L.hp0)S.fl.btNH=(S.fl.btNH||0)+1}
   return _eb(res)}}
 {const _se=startEncounter;startEncounter=function(enc,opt){const r=_se(enc,opt);try{if(BT&&BT.L)BT.L.hp0=S.hp}catch(e){}return r}}
+{const _se=startEncounter;startEncounter=function(enc,opt){try{if(enc&&enc.length>1&&!(opt&&(opt.boss||opt.arena))&&ROOM&&ROOM.zone==='bosque'&&S.lv<3)enc=[enc[0]]}catch(e){}return _se(enc,opt)}}
 // ------------------------------------------------ 3) couch ending: no question, it just happens
 couchAsk=async function(){if(!ROOM||ROOM.id!=='cabana'||BT||DU||UI.busy())return;S.fl.couchAsk=1;await say(['Vuelves a casa. Afuera hay código verde, bichos raros y un camino larguísimo.','Te tiras en el sofá. Solo cinco minutitos...']);await couchEnding()};
 // ------------------------------------------------ 4) hide other players (device setting)
